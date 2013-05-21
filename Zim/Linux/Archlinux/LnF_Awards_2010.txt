@@ -12,7 +12,7 @@ Diplay/Login Managers
 - [56] None/startx/xinitrc
 - [22] SLiM
 - [4] CDM
-- [1] XDM
+- [1] XDMNotes
 
 Tiling Window Managers
 - [17] Awesome

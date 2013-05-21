@@ -15,10 +15,12 @@ google-earth   --  a earth view app
 awesome    -- a Tilling window manager that I like best !
 	vicious-git — a awesomg wedget library
 feh               -- a fast and simple image viewer
-Xarchiver     -- a tar zip rar and so on archive manager
+rawtherapee  --Canon EOS 600D RC2 Picture Editor
+xarchiver     -- a tar zip rar and so on archive manager
+zip unzip rar unrar p2zip
 squeeze       -- another very well archive manager for pcmanfm or xfce!
 		        tar,gzip,bzip2,zip,unzip,unrar,p7zip
-Mutt             -- an Email Client
+Mutt             -- an Email ClientNotes
 Irssi              -- an IRC Client
 luit		    — terminal encoding translater.终端传输字符转换程序，适合用telnet登陆GBK 编码的BBS
 wicd              -- a Network Manager ,works well in my wireless network card .
@@ -31,7 +33,6 @@ htop               -- a system monitor likes top
 tint2               -- an lightweight panel/taskbar
 dmenu-xft           -- another panel but dynamic
 rxvt-unicode  -- a fork of well konwn terminal emulator rxvt(also support chinese)
-
 gnome-shell  — a terminal that support chinese input
 vim                -- a well konwn text editor that I used longgest  
 			    :set background=dark to solve keyword completion
@@ -82,5 +83,6 @@ dia   — a 'viso' like flow-chart drawing software.
 fcitx — a input method
 evince — a simple pdf viewer
 iftop    --- interface top
+wv   — ms word to html
 
 ###################################################################

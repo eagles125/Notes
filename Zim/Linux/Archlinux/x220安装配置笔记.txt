@@ -1,0 +1,180 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2013-05-20T17:13:03+08:00
+
+====== x220安装配置笔记 ======
+Created Monday 20 May 2013
+1. 下载并刻录ISO映像文件到U盘：
+  http://mirrors.stuhome.net/archlinux/iso/2013.05.01/
+  dd if=xxx of=/dev/sdx bs=4MB
+
+2.启动ISO映像。
+
+3.用cfdisk或parted创建各个分区；注意/、/usr必须位于同一个分区中，因为/sbin/init其实
+是/usr/lib/systemd目录文件的链接。
+
+4.用mkfs格式化各分区；swap分区用mkswap格式化，用swapon加载；
+
+5.挂载各分区：
+mount /dev/sdax /mnt
+mkdir /mnt/home && mount /dev/sdax /mnt/home;
+mkdir /mnt/var && mount /dev/sdax /mnt/var;
+
+6.安装基本系统
+
+配置网络：
+   先尝试用dhcpcd eth0的方式，失败的话，需要手动配置：
+    ip link set dev eth0 up;
+    ip addr add 192.168.1.111/24 dev eth0;
+    ip route add default via 192.168.1.1 dev eth0 onlink;
+    cat >/etc/resolv.conf <<EOF
+    nameserver 219.228.106.234
+注：如果不加onlink的话，可能会提示下列错误：
+RTNETLINK answers: Network is unreachable
+
+修改/etc/pacman.d/mirrorlist文件，将其中的所有Server开头的行注释掉，只保留stuhome；
+   vi /etc/pacman.d/mirrorlist
+   :%s/^Server/#Server/g
+
+使用pacstrap命令安装基本系统：
+ pacstrap /mnt base ...
+上面的...表示其它希望安装的软件包。
+
+7.安装bootloader：
+ arch-chroot /mnt pacman -S grub-bios
+
+8.配置系统：
+生成fstab：
+genfstab -p /mnt >>/mnt/etc/fstab
+.
+chroot到/mnt中：
+arch-chroot /mnt
+
+将主机名保存在/etc/hostname文件；
+将/etc/localtime指向/usr/share/zoneinfo/Zone/SubZone文件；
+修改/etc/locale.conf文件，添加:
+LANG=en_US.UTF-8；
+LC_TYPE=zh_CN.UTF-8 #这样emacs就可以输入中文
+修改控制终端的键盘映射和字体/etc/vconsole.conf
+反注释/etc/locale.gen文件中的en_US.xxx和zh_CN.xxx,保存后运行locale-get.
+运行mkinitcpio -p linux命令生成RAM Disk文件；
+配置GRUB：
+  如果使用的GPT分区表，确保第一个分区为BIOS GRUB预留，其标志位bios_grub；
+  modprobe md-mod;
+  grub-install --recheck --debug /dev/sda  #安装GRUB到BIOS GRUB分区；
+  grub-mkconfig -o /boot/grub/grub.cfg #生成配置文件；
+为root用户配置密码： passwd root；
+退出chroot环境:exit;
+卸载分区、重启：
+umount /mnt/* && reboot
+
+
+9.系统定制：
+在/etc/pacman.conf中添加如下内容：
+[archlinuxfr]
+SigLevel = Never
+Server = http://repo.archlinux.fr/$arch
+
+然后运行:pacman -Sy yaourt，这样yaourt 命令就可以使用了。
+
+安装以下软件包：
+vim emacs base-devel
+firefox chromium zim 
+awesome 
+kdebase kdegraphics
+openbox obconf obmenu thunar gvfs polkit-gnome tumbler thunar-volman thunar-archive-plugin 
+thunar-media-tags-plugin gnome-icon-theme gnome-icon-theme-extras gnome-icon-theme-symbolic
+leafnode getmail procmail msmtp mutt 
+git svn bzr cvs
+p7zip rar unrar zip unzip
+xinetd syslog-ng sudo gksu
+xorg-server xorg-server-utils  xorg-xinit xorg-utils  xterm xorg-twm xorg-xrdb  xorg-server-xephyr
+xf86-video-intel xf86-input-evdev xf86-input-synaptics
+alsa-utils alsa-oss alsa-plugins alsaplayer mplayer  smplayer vlc
+rxvt-unicode urxvt-perls urxvt-vtwheel urxvt-fullscreen
+wicd
+feh rawtherapee
+mariadb mariadb-clients nginx apache bind
+gimp
+xarchiver
+luit
+fcitx fcitx-cloudpinyin fcitx-sunpinyin fcitx-googlepinyin fcitx-gtk2 fcitx-gtk3 fcitx-qt4 fcitx-qt5
+fcitx-configtool fcitx-skin-sogou fcitx-sogoupinyin
+lsof strace htop
+texlive-most
+w3m emacss-w3m
+wv
+ruby
+python-pip python2-pip
+pulseaudio
+guvcview #摄像头捕获程序
+添加geekard用户，并设置密码：
+useradd -m geekard
+passwd geekard 
+
+将geekard添加到wheel组：
+gpasswd -a geekard wheel
+执行visudo命令，注释其中的wheel行。
+
+安装以下字体:
+wqy-zenhei wqy-bitmapfont wqy-microhei
+ttf-dejavu ttf-droid ttf-inconsolata ttf-ubuntu-font-family ttf-monaco ttf-microsoft-consolas ttf-monaco
+
+
+sudo sytemctl enable syslog-ng
+sudo systemctl start syslog-ng
+
+yaourt -S laptop-mode-tools acpid haparm cpupower
+sudo systemctl enable acpid laptop-mode
+sudo systemctl start apcid laptop-mode
+
+sudo systemctl enable cronie
+sudo systemctl start cronie
+
+修改/etc/xinetd.d/leafnode 将其中的disable值改为no
+sudo systemctl enable xinetd
+sudo systemctl start xinetd  #这样gnus才能访问本地的leafnode
+注意修改/etc/hosts文件,将主机名如localhost和geekrd添加一个完全限定域名，否则leafnode不能用。
+127.0.0.1 junmer.com localhost geekard
+
+注意，需要修改.msmtprc文件和.getmail目录中邮箱密码，同时.msmtprc的权限为600.
+为了使用mail命令发邮件，需要建立/usr/sbin/sendmail和/usr/bin/msmtp的链接。
+
+在/etc/cron.d目录下建立两个定时任务：
+*/5 * * * * geekard /usr/bin/getmail --rcfile=getmailrc --rcfile=gmailrc &>/dev/null
+*/5 * * * * news /usr/sbin/fetchnews
+注意，上面指定geekard, news时，crond在执行后续命令行时，使用的是geekard和news的环境，所以getmail回到/home/geekard/下寻找.getmail/{getmailrc，gmailrc}
+另外将命令行的标准出错重定向是为了Disable The Mail Alert By Crontab Command；另一种解决方法是在上面的文件最开始添加MAILTO="".
+
+
+ac-math 不用管
+auctex：./autogen.sh && ./configure && make; cd previes;make
+auto-complete: git submodule init;git submodule update;make
+auto-complete-auctex 不用管
+autopair不用管
+cedet:make
+cscope：可以用yaourt -S cscope安装
+emacs-flymke不用管
+emacs-w3m: autoconf;./configure;make
+htmlize:不用管
+icicles：不用管
+org-mode:make
+yasnippet:不用管
+emacs-ctable：不用管
+emms:make
+magit:make
+gnus:./configure && make
+
+启用触摸板的中键滚动功能，在/etc/X11/xorg.conf.d/20-thinkpad.conf:
+from:http://www.thinkwiki.org/wiki/How_to_configure_the_TrackPoint
+Section "InputClass"
+Identifier	"Trackpoint Wheel Emulation"
+MatchProduct	"TPPS/2 IBM TrackPoint|DualPoint Stick|Synaptics Inc. Composite TouchPad / TrackPoint|ThinkPad USB Keyboard with TrackPoint|USB Trackpoint pointing device|Composite TouchPad / TrackPoint"
+MatchDevicePath	"/dev/input/event*"
+Option	 "EmulateWheel"	 "true"
+Option	 "EmulateWheelButton"	"2"
+Option	 "Emulate3Buttons"	"false"
+Option	 "XAxisMapping"	 "6 7"
+Option	 "YAxisMapping"	 "4 5"
+EndSection
+
