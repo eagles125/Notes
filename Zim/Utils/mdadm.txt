@@ -1,0 +1,545 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2013-05-30T21:53:05+08:00
+
+====== mdadm ======
+Created Thursday 30 May 2013
+http://www.cnblogs.com/xiaoluo501395377/archive/2013/05/25/3099464.html
+
+本篇随笔将详细讲解RAID的原理基础以及Linux下软件RAID的配置
+
+一、RAID的原理基础
+
+在讲解RAID的原理基础之前，我们首先来了解一下传统磁盘的劣势。我们知道一台PC机种都会包含CPU、内存、主板、硬盘、网卡等硬件，影响计算机性能的组建包括：CPU、主板总线IO、内存IO、硬盘IO、网卡IO等。可能我们在一提到影响计算机的性能时，首先想到的就是CPU。但是随着计算机的发展，特别是对于现代的处理器来说，其运算速度已经是非常快的了，同时我们的内存IO速度也已经达到了非常快的地步了(差不多应该有5G每秒)，而我们也知道数据都是保存硬盘上的，所以计算机其实是先将硬盘的数据传递给内存，然后CPU再从内存中加载数据来进行运算的，所以由此看来影响整个计算机性能的因素就是我们的硬盘IO速度了。我们来看看目前流行的硬盘类型及速度(数据可能不准确，不过基本差不多)
+
+　　硬盘类型　　	　　速度
+　　SATA　	<150M/s
+　　SCSI	<200M/s
+　　SAS	200M/s左右
+　　SSD固态硬盘　　	500M/s左右
+我们目前的PC机上基本上都是使用SATA接口的硬盘，读的速度大概不超过150M/s，写的速度就更慢了，而生产环境下的服务基本上都是使用SAS(串行SCSI)硬盘，速度最快的是SSD固态硬盘，其速度几乎是SATA的4-5倍。但是即使是使用SSD固态硬盘，其速度在500M/s左右，也远远达不到我们内存以及CPU的处理速度。所以，硬盘是绝大多数计算机的性能的瓶颈
+
+所以，现代磁盘的缺陷就是：I/O性能极差，稳定性极差。
+
+I/O性能我们刚已经看到了，就算是使用SSD固态硬盘，其还是会大大影响计算机的性能，稳定性差表现在，如果一个硬盘发生了故障或者损坏，那么这块硬盘就已经不能再使用了，这如果是在对数据保存要求特别高的地方来说，其是不可想象的。正因为如此，就诞生了一种新的技术--RAID。
+
+RAID(Redundant Array of Independent Disks)是廉价磁盘冗余阵列技术的英文缩写，它的原理就是通过多个磁盘并行运行来提高整个计算机的I/O存储性能。
+
+RAID的评判标准有如下三个：
+
+ 
+
+①速度：读写速度的提升
+
+ 
+
+②磁盘使用率：多磁盘的空间使用率
+
+ 
+
+③冗余性： 能够支持几块磁盘损坏而不丢失数据
+
+ 
+
+所以，基于以上三个评判标准,RAID分为很多种类，称之为RAID级别，现代RAID一共有7个级别，分别是RAID0~RAID6，但是常用的RAID级别主要是以下四种：
+
+①RAID0：提高读写性能
+
+②RAID1：提高读写性能、冗余性
+
+③RAID5：提高读写性能、冗余性(允许1块硬盘发生故障)
+
+④RAID6：提高读写性能、冗余性(运行2块硬盘发生故障)
+
+下面我们就基于RAID的三个评判标准来看看常用的这四个RAID级别各自的特点
+
+1.RAID0
+
+RAID的工作原理就是通过多块硬盘并行运行来提高整个计算机的I/O存储性能。所以如果是RAID0这个级别，我们至少需要2块硬盘，在读写数据时，RAID0是通过将数据分开读写到多块硬盘的方式来提高读写性能的。我们可以通过下图来看看RAID0的工作原理
+
+
+
+RAID0至少需要两块硬盘，当使用RAID0时，我们在读写数据的时候是将数据分开读写到多块硬盘上，所以其读写速度是最快的，但是因为多块硬盘上保存了数据的一部分，所以当一块硬盘发生损坏时，其整个RAID的数据也就损坏了。
+
+①空间利用率：所有硬盘空间之和
+
+②性能：所有硬盘读写速度之和
+
+③冗余能力：无
+
+2.RAID1
+
+
+
+RAID1也是至少需要2块硬盘，在写数据的时候就不同于RAID0了，RAID1在写数据时会将数据复制到多块硬盘上，即每块硬盘都会保存该数据的一个备份，在读数据时，以提高冗余性。读的时候同时从多块硬盘上读取数据，以提高读的性能。
+
+①空间利用率：所有磁盘中最小的那块(其实在使用RAID时，最好每块硬盘的大小及型号都一样)
+
+②性能：读性能是所有硬盘之和，写性能有所减弱
+
+③冗余能力：只要有一块硬盘正常，数据就正常
+
+3.RAID5
+
+
+
+RAID5至少需要3块硬盘，RAID5与RAID0类似，读写数据的时候会将数据分布的读写到所有硬盘上。但是在写数据的时候RAID5会对数据进行奇偶校验运算，并将校验信息也保存在了硬盘上，所以即使我们其中一块硬盘发生了损坏，RAID5也能通过其他硬盘以及校验信息对数据进行恢复使用。但是如果2块或者2块以上的硬盘发生了损坏，整个数据也就损坏了。
+
+①空间利用率：1 - 1/n
+
+②性能：读性能接近RAID0，写性能相比RAID0要弱一些
+
+③冗余能力：可以接受1块硬盘的损坏
+
+4.RAID6
+
+
+
+RAID6至少需要4块硬盘，RAID6与RAID5相类似，读写数据的时候会将数据分布的读写到所有硬盘上。在写数据的时候RAID5会对数据进行奇偶校验运算，并将校验信息也保存在了硬盘上，但是RAID6会比RAID5多保存一份校验信息，所以RAID6的冗余性比RAID5就有所提升，可以允许2块硬盘发生损坏。
+
+①空间利用率：1 - 2/n
+
+②性能：读性能接近RAID5，写性能相比RAID5还要弱一些
+
+③冗余能力：可以接受2块硬盘的损坏
+
+以上四种RAID级别是我们最常用的四种级别，对于个人PC机来说，可能我们最需要提高的是硬盘存储性能，所以基本上使用的是RAID0，其读写性能得到了最大的提高，但是其冗余性为0，当硬盘发生损坏时，数据也就损坏了。而在生产环境下的服务器，使用的最多是RAID5或者RAID6，其即提供了读写性能，也提供了冗余性。RAID1通常会对于那些对数据准确性要求及其严格的场合才会使用。
+
+我们来总结一下这4个常用的RAID级别各自的优缺点：
+
+　　RAID级别　　	　　　　　　　　速度	　　冗余性　　	　　磁盘利用率　　
+　　RAID 0　　	　　　　读写速度均有提升	　　0	　　所有磁盘之和
+　　RAID 1	　　　　读速度有提示	　　n	　　一个磁盘大小
+　　RAID 5	　　　　读写速度均有提升　　　　	　　1	　　1-1/n
+　　RAID 6	　　　　读写速度均有提升	　　2	　　1-2/n
+RAID的实现有两种方式：软件RAID和硬件RAID
+
+①软件RAID
+
+通过系统功能或者RAID软件来实现RAID，没有独立的硬件和接口，需要占用一定的系统资源(CPU、硬盘接口速度)，并且受到操作系统稳定性的影响
+
+②硬件RAID
+
+通过独立的RAID硬件卡实现，有些主板集成了RAID硬件，有些需要购买独立的RAID硬件卡，硬件RAID实现不需要占用其他硬件资源，稳定性和速度都比软件RAID要强，所以对于服务器来说，最好是使用硬件RAID来提高计算机的性能
+
+二、Linux系统下软件RAID的使用
+
+对于目前所有的操作系统，包括windows、mac os、linux等操作系统，其都有软件RAID的实现，而我们的Linux操作系统的软件RAID是通过 mdadm 这个程序来实现的
+
+使用Linux下的 mdadm 这个软件需要注意的几点：
+
+①mdadm 支持的RAID级别有：RAID0、RAID1、RAID4、RAID5以及RAID6。我们看到对于常用的四种RAID级别，mdadm都能够支持
+
+②mdadm 可以基于多块硬盘、分区以及逻辑卷来创建RAID。对于硬件实现RAID来说，就只能是基于多块硬盘了
+
+③创建好的软件RAID对应于 /dev/mdn，n表示的是第几个RAID，如第一个创建的RAID对应 /dev/md0， 第二个创建的RAID就对应 /dev/md1，当然这个名字是可以自己随便取的
+
+④RAID的信息保存在 /proc/mdstat 文件中，或者通过 mdadm 命令来查看
+
+接下来我就在我这台CentOS的系统上来创建我们的软件RAID
+
+在创建软件RAID之前，我这里首先通过虚拟机模拟了4块1G的虚拟硬盘出来，当然在实际环境下，使用的就是具体的硬盘了。
+
+ 
+
+
+[root@xiaoluo ~]# fdisk -l
+
+Disk /dev/sda: 21.5 GB, 21474836480 bytes
+255 heads, 63 sectors/track, 2610 cylinders
+Units = cylinders of 16065 * 512 = 8225280 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disk identifier: 0x00093d90
+
+   Device Boot      Start         End      Blocks   Id  System
+/dev/sda1               1         523     4194304   82  Linux swap / Solaris
+Partition 1 does not end on cylinder boundary.
+/dev/sda2   *         523        2611    16776192   83  Linux
+
+Disk /dev/sdb: 1073 MB, 1073741824 bytes
+255 heads, 63 sectors/track, 130 cylinders
+Units = cylinders of 16065 * 512 = 8225280 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disk identifier: 0x00000000
+
+
+Disk /dev/sdc: 1073 MB, 1073741824 bytes
+255 heads, 63 sectors/track, 130 cylinders
+Units = cylinders of 16065 * 512 = 8225280 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disk identifier: 0x00000000
+
+
+Disk /dev/sdd: 1073 MB, 1073741824 bytes
+255 heads, 63 sectors/track, 130 cylinders
+Units = cylinders of 16065 * 512 = 8225280 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disk identifier: 0x00000000
+
+
+Disk /dev/sde: 1073 MB, 1073741824 bytes
+255 heads, 63 sectors/track, 130 cylinders
+Units = cylinders of 16065 * 512 = 8225280 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disk identifier: 0x00000000
+
+ 
+
+我们创建软件RAID是通过 mdadm 这个命令来创建的，例如我们创建一个 RAID 0，其语法格式如下：
+
+ 
+
+创建RAID 0：　　mdadm -C /dev/md0 -a yes -l 0 -n 2 /dev/sdb /dev sdc
+ 
+
+① -C　　创建一个新的RAID　　我们这里就是创建第一个RAID，名字叫做 /dev/md0
+
+② -a　　自动创建对应的设备　　yes表示会自动在/dev下创建该RAID设备
+
+③ -l　　指定要创建的RAID级别　　0我们这里创建RAID 0
+
+④ -n　　指定硬盘数量　　2表示使用2块硬盘来创建这个RAID0，分别是 /dev/sdb 和 /dev/sdc 
+
+我们通过 mdadm 这个命令来创建软件RAID的语法格式就是这样的
+
+ 
+
+创建RAID 1：    mdadm -C /dev/md1 -a yes -l 1 -n 2 /dev/sdb /dev/sdc
+
+创建RAID 5：    mdadm -C /dev/md2 -a yes -l 5 -n 3 /dev/sdb /dev/sdc /dev/sdd
+
+创建RAID 6：    mdadm -C /dev/md3 -a yes -l 6 -n 4 /dev/sdb /dev/sdc /dev/sdd /dev/sde
+ 
+
+我们也可以使用 -x 参数来指定一个备份磁盘，备份磁盘一般不使用，当出现一个磁盘故障的时候，指定的备份磁盘可以自动上线工作：
+
+mdadm -C /dev/md0 -a yes -l 5 -n 3 -x /dev/sdb /dev/sdc /dev/sdd /dev/sde
+我们看到，我们创建了一个RAID5，使用了三块硬盘，此时我们指定了参数 -x ，表示我们指定了一块硬盘来作为备份磁盘，当其他三块磁盘中一块出现问题时，这个指定备份硬盘就可以自动上线工作了。
+
+接下来我们通过来创建一个RAID 0来看看 mdadm 命令的使用：
+
+
+[root@xiaoluo ~]# mdadm -C /dev/md0 -a yes -l 0 -n 2 /dev/sdb /dev/sdc 
+
+mdadm: Defaulting to version 1.2 metadata
+mdadm: array /dev/md0 started.
+
+[root@xiaoluo ~]# ls -l /dev/md0 
+brw-rw----. 1 root disk 9, 0 May 25 22:36 /dev/md0
+
+此时我们就创建好了一个RAID 0，我们发现 /dev 下也存在了一个叫做 md0的设备了，我们可以使用 mdadm -D 这个命令来查看刚创建的RAID的详细信息，或者来查看 /proc/mdstat 这个文件来查看RAID的信息
+
+ 
+
+
+[root@xiaoluo ~]# cat /proc/mdstat 
+Personalities : [raid0] 
+md0 : active raid0 sdc[1] sdb[0]
+      2096128 blocks super 1.2 512k chunks
+      
+unused devices: <none>
+
+[root@xiaoluo ~]# mdadm -D
+mdadm: No devices given.
+[root@xiaoluo ~]# mdadm -D /dev/md0 
+/dev/md0:
+        Version : 1.2
+  Creation Time : Sat May 25 22:36:15 2013
+     Raid Level : raid0
+     Array Size : 2096128 (2047.34 MiB 2146.44 MB)
+   Raid Devices : 2
+  Total Devices : 2
+    Persistence : Superblock is persistent
+
+    Update Time : Sat May 25 22:36:15 2013
+          State : clean 
+ Active Devices : 2
+Working Devices : 2
+ Failed Devices : 0
+  Spare Devices : 0
+
+     Chunk Size : 512K
+
+           Name : xiaoluo:0  (local to host xiaoluo)
+           UUID : fe746431:4d77f0e9:e1c1a06f:1d341790
+         Events : 0
+
+    Number   Major   Minor   RaidDevice State
+       0       8       16        0      active sync   /dev/sdb　　//创建好的RAID 0使用了 /dev/sdb /dev/sdc这两块硬盘
+       1       8       32        1      active sync   /dev/sdc
+
+ 
+
+【注意：】我们在创建好RAID以后，需要将RAID的信息保存到 /etc/mdadm.conf 这个文件里，这样在下次操作系统重新启动的时候，系统就会自动加载这个文件来启用我们的RAID
+
+ 
+
+[root@xiaoluo ~]# mdadm -D --scan > /etc/mdadm.conf
+
+[root@xiaoluo ~]# cat /etc/mdadm.conf 
+ARRAY /dev/md0 metadata=1.2 name=xiaoluo:0 UUID=fe746431:4d77f0e9:e1c1a06f:1d341790
+ 
+
+这样我们在下次系统重新启动的时候，RAID也会自动启用了
+
+在创建了这个RAID 0以后，我们就不能再去使用 /dev/sdb 和 /dev/sdc 这个硬盘了，一旦对其进行任何操作，都会损坏我们刚创建好的RAID，所以我们此时就是使用RAID 0这个设备来对其进行文件系统格式化和挂载使用了
+
+
+[root@xiaoluo ~]# mkfs.ext4 /dev/md0 
+
+mke2fs 1.41.12 (17-May-2010)
+Filesystem label=
+OS type: Linux
+Block size=4096 (log=2)
+Fragment size=4096 (log=2)
+Stride=128 blocks, Stripe width=256 blocks
+131072 inodes, 524032 blocks
+26201 blocks (5.00%) reserved for the super user
+First data block=0
+Maximum filesystem blocks=536870912
+16 block groups
+32768 blocks per group, 32768 fragments per group
+8192 inodes per group
+Superblock backups stored on blocks: 
+    32768, 98304, 163840, 229376, 294912
+
+Writing inode tables: done                            
+Creating journal (8192 blocks): done
+Writing superblocks and filesystem accounting information: done
+
+This filesystem will be automatically checked every 24 mounts or
+180 days, whichever comes first.  Use tune2fs -c or -i to override.
+
+[root@xiaoluo ~]# mount /dev/md0 /mnt
+[root@xiaoluo ~]# mount
+/dev/sda2 on / type ext4 (rw)
+proc on /proc type proc (rw)
+sysfs on /sys type sysfs (rw)
+devpts on /dev/pts type devpts (rw,gid=5,mode=620)
+tmpfs on /dev/shm type tmpfs (rw,rootcontext="system_u:object_r:tmpfs_t:s0")
+none on /proc/sys/fs/binfmt_misc type binfmt_misc (rw)
+sunrpc on /var/lib/nfs/rpc_pipefs type rpc_pipefs (rw)
+/dev/md0 on /mnt type ext4 (rw)　　// 我们的/dev/md0 已经挂载上可以使用了
+
+[root@xiaoluo ~]# cd /mnt/
+[root@xiaoluo mnt]# ls
+lost+found
+
+这个时候我们就是使用RAID来进行文件的操作了，创建的时候使用的是RAID哪个级别，那么该RAID就会具有该级别的读写特性。在创建完RAID以后，我们就可以像使用分区一样来使用这个RAID了
+
+我们也可以通过 mdadm -S 这命令来关闭我们的 RAID ，当然在关闭RAID之前，我们需要先卸载掉RAID
+
+ 
+
+[root@xiaoluo mnt]# cd 
+[root@xiaoluo ~]# umount /mnt
+
+[root@xiaoluo ~]# mdadm -S /dev/md0 
+mdadm: stopped /dev/md0
+
+ 
+
+通常如果我们要重新启动我们的RAID，可以使用 mdadm -R 这个命令，但是可能是由于操作系统或者是软件的版本，在关闭RAID以后，使用这个命令会提示找不到该文件
+
+[root@xiaoluo ~]# mdadm -R /dev/md0
+mdadm: error opening /dev/md0: No such file or directory
+这个时候我们只需要重新启动一下操作系统即可，因为我们刚才已经经RAID的信息保存在了 /etc/mdadm.conf 这个文件里了
+
+[root@xiaoluo ~]# ls -l /dev/md0
+brw-rw----. 1 root disk 9, 0 May 25 22:57 /dev/md0
+我们看到在重新启动操作系统后，刚才那个RAID设备又有了。
+
+如果说我此时需要从该设备中拿走一块硬盘，或者说我要完全的删除这个RAID，从而像以前那样正常使用我们刚用作RAID的硬盘，这个时候我们应该怎么做呢？
+
+通过 mdadm --zero-superblock 这个命令即可，但是我们首先必须要停止我们的RAID,即使用 mdadm -S 命令。例如我要将刚才创建的RAID 0 的两块硬盘完全移除，就可以使用如下命令：
+
+[root@xiaoluo ~]# mdadm -S /dev/md0
+mdadm: stopped /dev/md0
+
+[root@xiaoluo ~]# mdadm --zero-superblock /dev/sdb 
+[root@xiaoluo ~]# mdadm --zero-superblock /dev/sdc
+这个时候，我们的RAID 0的信息就全部被清除掉了，刚才那两块硬盘我们也就能够正常的单独使用了。
+
+我们这里再来实验一下创建一个 RAID 5，然后来讲解一下如何模拟故障的命令
+
+
+[root@xiaoluo ~]# mdadm -C /dev/md0 -a yes -l 5 -n 3 /dev/sdb /dev/sdc /dev/sdd 
+mdadm: Defaulting to version 1.2 metadata
+mdadm: array /dev/md0 started.
+
+[root@xiaoluo ~]# cat /proc/mdstat 
+Personalities : [raid0] [raid6] [raid5] [raid4] 
+md0 : active raid5 sdd[3] sdc[1] sdb[0]
+      2095104 blocks super 1.2 level 5, 512k chunk, algorithm 2 [3/2] [UU_]
+      [=================>...]  recovery = 87.2% (915204/1047552) finish=0.0min speed=91520K/sec　　// 操作未完毕
+      
+unused devices: <none>
+
+【注意：】我们在创建RAID 5 或者RAID 6的时候，因为其还要对硬盘进行一些检查的操作，而且根据硬盘的大小时间可能会不同，我们在输入完 mdadm 命令以后，还必须要去查看 /proc/mdstat 这个文件，查看这个文件里面的进度信息是否已经完整，例如上面创建时进度才只有 87.2% ，我们必须要等进度显示完整以后才能做接下来的操作
+
+[root@xiaoluo ~]# cat /proc/mdstat 
+Personalities : [raid0] [raid6] [raid5] [raid4] 
+md0 : active raid5 sdd[3] sdc[1] sdb[0]
+      2095104 blocks super 1.2 level 5, 512k chunk, algorithm 2 [3/3] [UUU]　　// 操作完毕
+      
+unused devices: <none>　　
+通过mdadm -D 可以查看RAID详细信息：
+
+ 
+
+
+[root@xiaoluo ~]# mdadm -D /dev/md0
+/dev/md0:
+        Version : 1.2
+  Creation Time : Sat May 25 23:07:06 2013
+     Raid Level : raid5
+     Array Size : 2095104 (2046.34 MiB 2145.39 MB)
+  Used Dev Size : 1047552 (1023.17 MiB 1072.69 MB)
+   Raid Devices : 3
+  Total Devices : 3
+    Persistence : Superblock is persistent
+
+    Update Time : Sat May 25 23:07:18 2013
+          State : clean 
+ Active Devices : 3
+Working Devices : 3
+ Failed Devices : 0
+  Spare Devices : 0
+
+         Layout : left-symmetric
+     Chunk Size : 512K
+
+           Name : xiaoluo:0  (local to host xiaoluo)
+           UUID : 029e2fe7:8c9ded40:f5079536:d249ccf7
+         Events : 18
+
+    Number   Major   Minor   RaidDevice State
+       0       8       16        0      active sync   /dev/sdb
+       1       8       32        1      active sync   /dev/sdc
+       3       8       48        2      active sync   /dev/sdd
+
+ 
+
+实验环境下，我们还可以通过 mdadm 命令来模拟RAID故障，通过 mdadm /dev/md0 -f /dev/sdd 命令
+
+[root@xiaoluo ~]# mdadm /dev/md0 -f /dev/sdd
+mdadm: set /dev/sdd faulty in /dev/md0
+我们可以再查看一下这个RAID的信息：
+
+
+[root@xiaoluo ~]# mdadm -D /dev/md0
+/dev/md0:
+        Version : 1.2
+  Creation Time : Sat May 25 23:07:06 2013
+     Raid Level : raid5
+     Array Size : 2095104 (2046.34 MiB 2145.39 MB)
+  Used Dev Size : 1047552 (1023.17 MiB 1072.69 MB)
+   Raid Devices : 3
+  Total Devices : 3
+    Persistence : Superblock is persistent
+
+    Update Time : Sat May 25 23:13:44 2013
+          State : clean, degraded 
+ Active Devices : 2
+Working Devices : 2
+ Failed Devices : 1
+  Spare Devices : 0
+
+         Layout : left-symmetric
+     Chunk Size : 512K
+
+           Name : xiaoluo:0  (local to host xiaoluo)
+           UUID : 029e2fe7:8c9ded40:f5079536:d249ccf7
+         Events : 19
+
+    Number   Major   Minor   RaidDevice State
+       0       8       16        0      active sync   /dev/sdb
+       1       8       32        1      active sync   /dev/sdc
+       2       0        0        2      removed
+
+       3       8       48        -      faulty spare   /dev/sdd　　// 这块硬盘被标志成了坏的硬盘
+
+我们看到 /dev/sdd 这块硬盘被标志成了坏的硬盘，因为我们使用的是RAID 5这个级别，所以一块硬盘损坏了，并不会对数据造成损坏，数据还是完好无整的
+
+我们可以通过 mdadm /dev/md0 -r /dev/sdd 来移除这块硬盘
+
+
+[root@xiaoluo ~]# mdadm /dev/md0 -r /dev/sdd 
+mdadm: hot removed /dev/sdd from /dev/md0
+
+[root@xiaoluo ~]# mdadm -D /dev/md0
+/dev/md0:
+        Version : 1.2
+  Creation Time : Sat May 25 23:07:06 2013
+     Raid Level : raid5
+     Array Size : 2095104 (2046.34 MiB 2145.39 MB)
+  Used Dev Size : 1047552 (1023.17 MiB 1072.69 MB)
+   Raid Devices : 3
+  Total Devices : 2
+    Persistence : Superblock is persistent
+
+    Update Time : Sat May 25 23:17:12 2013
+          State : clean, degraded 
+ Active Devices : 2
+Working Devices : 2
+ Failed Devices : 0
+  Spare Devices : 0
+
+         Layout : left-symmetric
+     Chunk Size : 512K
+
+           Name : xiaoluo:0  (local to host xiaoluo)
+           UUID : 029e2fe7:8c9ded40:f5079536:d249ccf7
+         Events : 22
+
+    Number   Major   Minor   RaidDevice State
+       0       8       16        0      active sync   /dev/sdb
+       1       8       32        1      active sync   /dev/sdc
+       2       0        0        2      removed　　// /dev/sdd 已经被移除掉了
+
+如果我们要换上新的硬盘，则可以使用 mdadm /dev/md0 -a /dev/sde 这个命令
+
+
+[root@xiaoluo ~]# mdadm /dev/md0 -a /dev/sde 
+mdadm: added /dev/sde
+
+[root@xiaoluo ~]# mdadm -D /dev/md0 
+/dev/md0:
+        Version : 1.2
+  Creation Time : Sat May 25 23:07:06 2013
+     Raid Level : raid5
+     Array Size : 2095104 (2046.34 MiB 2145.39 MB)
+  Used Dev Size : 1047552 (1023.17 MiB 1072.69 MB)
+   Raid Devices : 3
+  Total Devices : 3
+    Persistence : Superblock is persistent
+
+    Update Time : Sat May 25 23:19:15 2013
+          State : clean, degraded, recovering 
+ Active Devices : 2
+Working Devices : 3
+ Failed Devices : 0
+  Spare Devices : 1
+
+         Layout : left-symmetric
+     Chunk Size : 512K
+
+ Rebuild Status : 90% complete
+
+           Name : xiaoluo:0  (local to host xiaoluo)
+           UUID : 029e2fe7:8c9ded40:f5079536:d249ccf7
+         Events : 40
+
+    Number   Major   Minor   RaidDevice State
+       0       8       16        0      active sync   /dev/sdb
+       1       8       32        1      active sync   /dev/sdc
+       3       8       64        2      spare rebuilding   /dev/sde　　// 新的/dev/sde硬盘已经增加进来了
+
+ 
+
+好了，至此本篇随笔就已经要告一段落了！！！本篇随笔详细讲解了RAID(Redundant Array of Independent Disks)的原理基础以及在Linux系统下使用 mdadm 这程序来实现我们的软件RAID的配置！！！

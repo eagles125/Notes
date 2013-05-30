@@ -173,14 +173,16 @@ for word in $list; do
   ...
 done
 
-Function names
+
+===== Function names =====
 
 Function names should be all lowercase and have a good name. The function names should be human readable ones. A function named f1 may be easy and quick to write down, but for debugging and especially for other people, it will tell nothing. Good names help to document the code without using extra comments.
 
 A more or less funny one: If not intended to do so, do not name your functions like common commands, typically new users tend to name their scripts or functions test, which collides with the UNIX test command!
 
 Unless absolutely necessary, only use alphanumeric characters and the underscore for function names. /bin/ls is a valid function name in Bash, but it only makes limited sense.
-Command substitution
+
+===== Command substitution =====
 
 As noted in the article about command substitution you should use the $( ... ) form.
 
@@ -198,7 +200,7 @@ Avoid if, unless absolutely neccesary:
     if possible, re-think the way your script works, if it seems you can't avoid eval with your current way
     if you really really have to use it, then you should take care and know what you do (if you know what you do, then eval is not evil at all)
 
-Basic structure
+===== Basic structure =====
 
 The basic structure of a script simply reads:
 
@@ -218,10 +220,10 @@ Be careful with /bin/sh: The argument that "on Linux /bin/sh is a Bash" is a lie
 
 The shebang serves two purposes for me:
 
-    it specifies the interpreter when the script file is called directly: If you code for Bash, specify bash!
-    it documents the desired interpreter (so: use bash when you write a Bash-script, use sh when you write a general Bourne/POSIX script, ...)
+* it specifies the interpreter when the script file is called directly: If you code for Bash, specify bash!
+* it documents the desired interpreter (so: use bash when you write a Bash-script, use sh when you write a general Bourne/POSIX script, ...)
 
-Configuration variables
+==== Configuration variables ====
 
 I call variables that are meant to be changed by the user "configuration variables" here.
 
@@ -239,7 +241,8 @@ getargs() {
 }
 
 Speaking about the command grouping in function definitions using { ...; }: If you don't have a good reason to use another compound command directly, you should always use this one.
-Behaviour and robustness
+
+===== Behaviour and robustness =====
 Fail early
 
 Fail early, this sounds bad, but usually is good. Failing early means to error out as early as possible when checks indicate some error or unmet condition. Failing early means to error out before your script begins its work in a potentially broken state.
@@ -270,8 +273,8 @@ The exit code is your only way to directly communicate with the calling process 
 
 If your script exits, provide a meaningful exit code. That minimally means:
 
-    exit 0 (zero) if everything is okay
-    exit 1 - in general non-zero - if there was an error
+1. exit 0 (zero) if everything is okay
+2. exit 1 - in general non-zero - if there was an error
 
 This, and only this, will enable the calling component to check the operation status of your script.
 

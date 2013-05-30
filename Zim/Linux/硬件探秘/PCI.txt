@@ -281,7 +281,7 @@ cpqphp               0xffffffff 0xffffffff 0xffffffff 0xffffffff 0x00080400 0xff
 ibmphp               0x00001014 0x00000246 0x00001014 0x00000247 0x00080400 0x00000000 0x0 
 geekard@geekard-laptop:~$ 
     系统根据检测到的硬件 vendor     device     subvendor  subdevice  class信息来加载module,而这些信息存在__pci的配置寄存器__中。在操作系统启动或pci设备刚接入时pci总线驱动程序访问这些寄存器，以便对其初始化，并装入相应的设备驱动程序，使其变为可用状态。配置寄存器  是即插即用的硬件基础。
-geekard@geekard-laptop:~$ lspci -v 
+geekard@geekard-laptop:~$ lspci -v /devices/pci0000:00/0000:00:1d.0/usb2/2-1/2-1.2
 00:00.0 Host bridge: Intel Corporation Mobile 945GM/PM/GMS, 943/940GML and 945GT Express Memory Controller Hub (rev 03) 
 	Subsystem: Hewlett-Packard Company Device 30d5 
 	Flags: bus master, fast devsel, latency 0 

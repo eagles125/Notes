@@ -438,6 +438,7 @@ Each command in a pipeline is executed __in its own subshell __(see Command Exec
 A list is a sequence of one or more pipelines separated by one of the operators **‘;’, ‘&’, ‘&&’, or ‘||’**, and optionally terminated by one of ‘;’, ‘&’, or a newline.
 
 Of these list operators, ‘&&’ and ‘||’ have equal precedence, followed by ‘;’ and ‘&’, which have equal precedence.
+__注意：&&和||的优先级较高，而且;和&的优先级较低。管道的优先级最高(用于组成pipeline command类型)，而lists of command只是pipeline类型的组合。__
 
 A sequence of one or more newlines may appear in a list to delimit commands, equivalent to a semicolon.
 
@@ -472,6 +473,7 @@ The return status of and and or lists is the exit status of the __last command e
 
 Compound commands are the shell__ programming constructs__. Each construct **begins with a reserved word or control operator **and is terminated by a corresponding reserved word or operator. Any redirections (see Redirections) associated with a compound command apply to __all commands within that compound command unless explicitly overridden__.
 控制结构或逻辑结构的重定向命令应用于该结构中的所有命令。
+注意：所有compound 类型的命令，其最开始都用一个保留字或控制操作符如{, (等引导。
 
 Bash provides looping constructs, conditional commands, and mechanisms to group commands and __execute them as a unit__.
 
@@ -530,7 +532,8 @@ The** break** and **continue** builtins (see Bourne Shell Builtins) may be used 
     case will selectively execute the command-list corresponding to the **first** pattern that matches word. If the shell option nocasematch (see the description of shopt in The Shopt Builtin) is enabled, the match is performed without regard to the case of alphabetic characters. The __‘|’__ is used to separate multiple patterns, and the ‘)’ operator** terminates a pattern list**. A list of patterns and an associated command-list is known as a__ clause__.
 
     Each clause must be terminated with **‘;;’, ‘;&’, or ‘;;&’.** The word undergoes tilde expansion, parameter expansion, command substitution, arithmetic expansion, and quote removal **before** matching is attempted. Each pattern undergoes tilde expansion, parameter expansion, command substitution, and arithmetic expansion.
-pattern使用的是__bash的匹配模式__，多个pattern只能使用|相连，表示**或关系**__。bash会对模式和command-list中的内容进行“~”扩展、参数扩展、命令替换和算术扩展__。
+
+pattern使用的是__bash的匹配模式__，多个pattern只能使用|相连，表示**或关系**__。bash会对模式和command-list中的内容进行“~”扩展、参数扩展、命令替换和算术扩展（不会增加filed 数量的展开）__。
 
     There may be an arbitrary number of case clauses, each terminated by a ‘;;’, ‘;&’, or ‘;;&’. The first pattern that matches determines the command-list that is executed.
 
@@ -584,7 +587,7 @@ The **PS3 **prompt is then displayed and a line is read from the standard input.
 
     Return a status of 0 or 1 depending on the evaluation of the __conditional expression__ **expression**. Expressions are composed of the primaries described below in Bash Conditional Expressions. __Word splitting and filename expansion are not performed __on the words between the ‘[ [’ and ‘] ]’; tilde expansion, parameter and variable expansion, arithmetic expansion, command substitution, process substitution, and **quote removal** are performed. Conditional operators such as ‘-f’ must be unquoted to be recognized as primaries.
 
-    When used with ‘[[’, The __‘<’__** and **__‘>’__ operators __sort lexicographically(对字符串而言，不能用于数字)__ using the current locale.
+    When used with ‘[[’, The __‘<’__** and **__‘>’__ operators __sort lexicographically__ using the current locale.
 
     When the__ ‘==’ and ‘!=’__ operators are used, the string to the right of the operator is __considered a pattern__ and matched according to the rules described below in Pattern Matching. If the shell option nocasematch (see the description of shopt in The Shopt Builtin) is enabled, the match is performed without regard to the case of alphabetic characters. The return value is 0 if the string matches (‘==’) or does not match (‘!=’)the pattern, and 1 otherwise. Any part of the pattern may be quoted to force it to be matched as a string.
 
@@ -616,9 +619,9 @@ Bash provides two ways to group a list of commands to be __executed as a unit__.
     Placing a list of commands between parentheses causes __a subshell environment __to be created (see Command Execution Environment), and each of the commands in list to be executed in **that subshell(正常情况下，list中的每个命令都是在不同的subshell中执行的。)**. Since the list is executed in a subshell, variable assignments do not remain in effect after the subshell completes.
 {}
 
-              { list__; __}   #在__当前shell__中执行list中的命令，注意__最后的分号不可少。大括号是关键字，因此，它与list之间必须要有空格。__
+              { list__; __}   #在__当前shell__中执行list中的命令，注意__最后的分号不可少。大括号不是关键字，因此，它与list之间必须要有空格。__
 
-    Placing a list of commands between curly braces causes the list to be executed __in the current shell context__. No subshell is created. The semicolon (or newline) following list is required. 
+    Placing a list of commands between curly braces causes the list to be executed __in the current shell context__. No subshell is created. The semicolon (or newline) following list is required. __注意左大括号必须是命令行中第一个非空字符。__
 
 In addition to the creation of a subshell, there is a subtle difference between these two constructs due to historical reasons. The braces are** reserved words**, so they must be separated from the list by blanks or other shell metacharacters. __The parentheses are operators__, and are recognized as separate tokens by the shell even if they are not separated from the list by whitespace.
 
@@ -673,33 +676,39 @@ __exec __>&${tee[1]} 2>&1
 
 ===== 3.3 Shell Functions =====
 
-Shell functions are a way to __group commands for later execution__ using a single name for the group. They are executed just__ like a "regular" command__. When the name of a shell function is **used as a simple command name**, the list of commands associated with that function name is executed. Shell functions are __executed in the current shell__ context; no new process is created to interpret them.
+Shell functions are a way to __group commands for later execution__ using a single name for the group. They are executed just__ like a "regular" command__. When the name of a shell function is **used as a simple command name**, the list of commands associated with that function name is executed. Shell functions are __executed in the current shell context__; no new process is created to interpret them.
 
 Functions are declared using this syntax:
 
      **[ function ] **name () **compound-command [ redirections ]**
 
-This defines a shell function named //name//. The reserved word function is optional. If the function reserved word is supplied, the parentheses are optional. The body of the function is the __compound command__ compound-command (see Compound Commands). That command is usually a list enclosed between { and }, but may be any compound command listed above. compound-command is executed whenever __name is specified as the name of a command__. Any redirections (see Redirections) associated with the shell function are performed **when** the function is executed.
+This defines a shell function named //name//. The reserved word function is optional. If the function reserved word is supplied, the parentheses are optional. The body of the function is the __compound command__ compound-command (see Compound Commands). That command is usually a list enclosed __between { and },__ but may be any compound command listed above. compound-command is executed whenever __name is specified as the name of a command__. Any redirections (see Redirections) associated with the shell function are performed **when** the function is executed.
 
 A function definition may be deleted using the __-f __option to the __unset__ builtin (see Bourne Shell Builtins).
 
-The exit status of a function definition is zero unless a syntax error occurs or a readonly function with the same name already exists. When executed, the exit status of a function is the exit status of the** last **command executed in the body.
+The exit status of a **function **__definition__ is zero unless a syntax error occurs or **a readonly function** with the same name already exists. When executed, the exit status of a function is the exit status of the** last **command executed in the body.
 
 Note that for historical reasons, in the most common usage the** curly braces** that surround the body of the function __must be separated from the body__ by blanks or newlines. This is because the** braces are reserved words **and are only recognized as such when they are separated from the command list by whitespace or another shell metacharacter. Also, when using the braces, __the list must be terminated by a semicolon, a ‘&’, or a newline__.
 
-When a function is executed, the arguments to the function become the __positional parameters__ during its execution (see Positional Parameters). The special parameter ‘#’ that expands to the number of positional parameters is updated to reflect the change. Special __parameter 0 is unchanged__. The first element of the __FUNCNAME__ variable is set to the name of the function while the function is executing.
+注意，函数定义的最后一个}与command list之间必须要用：
+* 分号
+* 换行
+* 或&分割。
+良好的喜欢是用换行进行分割，即最后一个}位于单独的行上。
 
-All other aspects of the shell execution environment are identical between a function and its caller with these exceptions: the **DEBUG and RETURN traps are not inherited** unless the function has been given the trace attribute using the declare builtin or the __-o functrace__ option has been enabled with the** set** builtin, (in which case all functions inherit the DEBUG and RETURN traps), and the __ERR trap__ is not inherited unless the __-o errtrace__ shell option has been enabled. See Bourne Shell Builtins, for the description of the trap builtin.
+When a function is executed, the arguments to the function become the __positional parameters__ during its execution (see Positional Parameters). The special parameter ‘#’ that expands to the number of positional parameters is updated to reflect the change(**#代表位置参数的个数，不包括命令名$0**). Special __parameter 0 is unchanged__. The first element of the __FUNCNAME__ variable is set to the name of the function while the function is executing(函数也可以嵌套调用，所以FUNCNAME是一个数组变量).
+
+All other aspects of the shell execution environment **are identical** between a function and its caller with these exceptions: the **DEBUG and RETURN traps are not inherited** unless the function has been given __the trace attribute__ using the __declare__ builtin or the __-o functrace__ option has been enabled with the** set** builtin, (in which case all functions inherit the DEBUG and RETURN traps), and the __ERR trap__ is not inherited unless the __-o errtrace__ shell option has been enabled. See Bourne Shell Builtins, for the description of the trap builtin.
 注意：默认情况下，函数在**当前shell环境**中执行但**不会继承**环境中定义的DEBUG和RETURN traps。所以如果对当前函数的retun进行捕获，则必须在return的函数中定义trap命令。
 
-If the builtin command __return__ is executed in a function, the function completes and execution resumes with the next command after the function call. Any command associated with the __RETURN trap is executed before execution resumes__. When a function completes, the values of the positional parameters and the special parameter ‘#’ are restored to the values they had prior to the function's execution. If a numeric argument is given to return, that is the function's **return status**; otherwise the function's return status is the exit status of the last command executed before the return.
+If the builtin command __return__ is executed in a function, the function completes and execution resumes with the next command after the function call. Any command associated with the __RETURN trap is executed before execution resumes__. When a function completes, the values of the positional parameters and the special parameter ‘#’ are restored to the values they had __prior to__ the function's execution. If a numeric argument is given to return, that is the function's **return status**; otherwise the function's return status is the exit status of the last command executed before the return.
 
 **Variables local to the function** may be declared with the__ local__ builtin. These variables are visible only to the function and the commands it invokes.
 
 Function names and definitions may be listed with the __-f __option to the __declare__ or __typeset__ builtin commands (see Bash Builtins). The __-F __option to declare or typeset will list the function names only (and optionally the source file and line number, if the extdebug shell option is enabled). **Functions may be exported **so that subshells automatically have them defined with the __-f__ option to the __export__ builtin (see Bourne Shell Builtins). Note that shell functions and variables with the same name may result in multiple identically-named entries in the environment passed to the shell's children. Care should be taken in cases where this may cause a problem.
 
 Functions may be recursive. No limit is placed on the number of recursive calls.
-declare -f 和typeset -f列出当前环境中定义的所有函数名及其定义。__函数名可以被export -f funname命令输出__，这样子shell就可以调用它们。
+declare -f 和typeset -f列出当前环境中定义的所有函数名__及其定义__。__函数名可以被export -f funname命令输出__，这样子shell就可以调用它们。
 
 ===== 3.4 Shell Parameters =====
 
@@ -707,24 +716,24 @@ declare -f 和typeset -f列出当前环境中定义的所有函数名及其定�
 * Special Parameters: Parameters denoted by special characters. 
 
 **A **__parameter__** is an entity that stores values**. It can be a name, a number, or one of the special characters listed below. **A**__ variable__** is a parameter denoted by a name**. A variable has a value and zero or more__ attributes__. Attributes are assigned using the **declare** builtin command (see the description of the declare builtin in Bash Builtins).
-参数是一个实体，它可以是名称、数字或特殊字符。变量是参数的一种，它用名称来标记并具有属性。
+参数是一个实体，它可以是名称、数字或特殊字符。变量是参数的一种，它用名称来标记并__具有属性__。
 
-A parameter is **set** if it has been assigned a value. The **null string** is a valid value. Once a variable is set, it may be **unset** only by using the unset builtin command.
+A parameter is **set** if it has been assigned a value. **The null string is a valid value**. Once a variable is set, it may be **unset** only by using the unset builtin command.
 
 A variable may be assigned to by a statement of the form
 
      name=[value]
 
-If value is not given, the variable is assigned the __null string__. All values undergo tilde expansion, parameter and variable expansion, command substitution, arithmetic expansion, and __quote removal __(detailed below). If the variable has its__ integer attribute__ set, then value is **evaluated as an arithmetic expression** even if the $((...)) expansion is not used (see Arithmetic Expansion). Word splitting is not performed, with the exception of "$@" as explained below. **Filename expansion is not performed**. Assignment statements may also appear as arguments to the** alias**, **declare**,** typeset**, **export**, **readonly**, and **local** builtin commands.
+If value is not given, the variable is assigned the __null string__. All values undergo tilde expansion, parameter and variable expansion, command substitution, arithmetic expansion, and __quote removal __(detailed below). If the variable has its__ integer attribute__ set, then value is **evaluated as an arithmetic expression** even if the $((...)) expansion is not used (see Arithmetic Expansion). **Word splitting is not performed**, with the exception of "$@" as explained below. **Filename expansion is not performed**. Assignment statements may also appear as arguments to the** alias**, **declare**,** typeset**, **export**, **readonly**, and **local** builtin commands.
 
-In the context where an assignment statement is assigning a value to a **shell variable** or __array index__ (see Arrays), the __‘+=’__ operator can be used to append to or add to the variable's previous value. When ‘+=’ is applied to a variable for which the integer attribute has been set, value is evaluated as an arithmetic expression and added to the variable's current value, which is also evaluated. When ‘+=’ is applied to an array variable using compound assignment (see Arrays), the variable's value is **not unset** (as it is when using ‘=’), and new values are appended to the array beginning at__ one greater__ than the array's **maximum** index (for indexed arrays), or added as additional key-value pairs in an associative array. When applied to a string-valued variable, value is expanded and appended to the variable's value.
-
+In the context where an assignment statement is assigning a value to a **shell variable** or __array index__ (see Arrays), the __‘+=’__ operator can be used to __append to or add to__ the variable's previous value. When ‘+=’ is applied to a variable for which the integer attribute has been set, value is evaluated as an arithmetic expression and added to the variable's current value, which is also evaluated. When ‘+=’ is applied to an array variable using compound assignment (see Arrays), the variable's value is **not unset** (as it is when using ‘=’), and new values are appended to the array beginning at__ one greater__ than the array's **maximum** index (for indexed arrays), or added as additional key-value pairs in **an associative array.** When applied to a string-valued variable, value is expanded and appended to the variable's value.
+**可以用+=连接两个字符串变量。**
 
 ==== 3.4.1 Positional Parameters ====
 
-A positional parameter is a parameter denoted by **one or more digits**, other than the single digit 0. Positional parameters are assigned from the shell's arguments when it is invoked, and may be **reassigned **using the __set__ builtin command. Positional parameter N may be referenced as ${N}, or as $N when N consists of a single digit. Positional parameters may** not be assigned to with assignment statements**. The __set__ and __shift__ builtins are used to set and unset them (see Shell Builtin Commands). The positional parameters are __temporarily__ replaced when a shell function is executed (see Shell Functions).
+A positional parameter is a parameter denoted by **one or more digits**, other than the single digit 0. Positional parameters are assigned from the shell's arguments when it is invoked, and may be __reassigned using the set builtin command__. Positional parameter N may be referenced as ${N}, or as $N when N consists of a single digit. Positional parameters may** not be assigned to with assignment statement可以用可以用+=连接两个字符串变量。+=连接两个字符串变量。s**. The __set__ and __shift__ builtins are used to set and unset them (see Shell Builtin Commands). The positional parameters are __temporarily__ replaced when a shell function is executed (see Shell Functions).
 位置参数不能被赋值。
-When a positional parameter consisting of more than a single digit is expanded, it must be enclosed in braces.
+When a positional parameter consisting of more than a single digit is expanded, it must be __enclosed in braces__.
 
 
 ==== 3.4.2 Special Parameters ====
@@ -742,11 +751,11 @@ The shell treats several parameters specially. These parameters may only be refe
 -
     (A hyphen.) Expands to the current __option flags __as specified upon invocation, by the **set **builtin command, or those set by the shell itself (such as the -i option).
 $
-    Expands to the __process id__ of the shell. In a () subshell, it expands to the process id of the__ invoking shell__, not the subshell.
+    Expands to the __process id__ of the shell. In a () subshell, it expands to the process id of the invoking shell, __not the subshell.__
 __!__
     Expands to the process id of the most recently executed __background__ (asynchronous) command.
 0
-    Expands to the __name of the shell or shell script__. This is set at shell initialization. If Bash is invoked with a file of commands (see Shell Scripts), $0 is set to the name of that file. If Bash is started with the -c option (see Invoking Bash), then $0 is set to the first argument after the string to be executed, if one is present. Otherwise, it is set to the filename used to invoke Bash, as given by argument zero.
+    Expands to the __name of the shell or shell script__. This is set at shell initialization. If Bash is invoked with a file of commands (see Shell Scripts), $0 is set to the name of that file. If Bash is started with the -c option (see Invoking Bash), then $0 is set to **the first argument** after the string to be executed, if one is present. Otherwise, it is set to the filename used to invoke Bash, as given by argument zero.
 _
     (An underscore.) At shell startup, set to the **absolute pathname** used to invoke the shell or shell script being executed as passed in the environment or argument list. Subsequently, expands to the__ last argument to the previous command__, **after expansion**. Also set to the full pathname used to invoke each command executed and placed in the environment exported to that command. When checking mail, this parameter holds the name of the mail file. 
 代表上一个命令的最后一个扩展后的参数。
@@ -765,9 +774,9 @@ Expansion is performed on the command line __after it has been split into tokens
 
 * Brace Expansion: Expansion of expressions within braces. 大括号扩展，这里的大括号的用途并不是来group commands。
 * Tilde Expansion: Expansion of the __~ __character.
-* Shell Parameter Expansion: How Bash expands variables to their values.
-* Command Substitution: Using the output of a command as an argument.
+* Shell Parameter Expansion: How Bash expands variables to their values. 
 * Arithmetic Expansion: How to use arithmetic in shell expansions.
+* Command Substitution: Using the output of a command as an argument.
 * **Process Substitution**: A way to write and read to and from a command.
 * **Word Splitting**: How the __results of expansion __are split into separate arguments.
 * **Filename Expansion**: A shorthand for specifying filenames matching patterns.
@@ -802,7 +811,7 @@ Brace expansions may be nested. The results of each expanded string are **not so
      bash$ echo a{d,c,b}e
      ade ace abe
 
-A sequence expression takes the form __{x..y[..incr]}__, where x and y are either integers or single characters, and incr, an optional increment, is an integer. When integers are supplied, the expression expands to each number between x and y, inclusive. Supplied integers may be prefixed with ‘0’ to force each term to have the same width. When either x or y begins with a zero, the shell attempts to force all generated terms to contain the same number of digits, zero-padding where necessary. When characters are supplied, the expression expands to each character lexicographically between x and y, inclusive. Note that both x and y must be of the same type. When the increment is supplied, it is used as the difference between each term. The default increment is **1 or -1** as appropriate.
+A sequence expression takes the form __{x..y[..incr]}__, where x and y are **either integers or single characters**, and incr, an optional increment, is **an integer.** When integers are supplied, the expression expands to each number between x and y, __inclusive__. Supplied integers may be **prefixed with ‘0’** to force each term to have the same width. When either x __or__ y begins with a zero, the shell attempts to force all generated terms to contain the same number of digits, zero-padding where necessary. When characters are supplied, the expression expands to each character lexicographically between x and y, inclusive. Note that both x and y must be of the same type. When the increment is supplied, it is used as the difference between each term. The default increment is **1 or -1** as appropriate.
 
 Brace expansion is performed before any other expansions, and any characters special to other expansions are **preserved **in the result. It is __strictly textual__. Bash does not apply any syntactic interpretation to the context of the expansion or the text between the braces. To avoid conflicts with parameter expansion, the string __‘${’__ is not considered eligible for brace expansion.
 
@@ -832,9 +841,9 @@ or
 
 If a word** begins with** an unquoted tilde character (‘~’), all of the characters up to the** first unquoted slash **(or all characters, if there is no unquoted slash) are considered a __tilde-prefix__. If none of the characters in the tilde-prefix are quoted, the characters in the tilde-prefix following the tilde are treated as a possible login name. If this login name is the null string, the tilde is replaced with the value of the HOME shell variable. If HOME is unset, the home directory of the user executing the shell is substituted instead. Otherwise, the tilde-prefix is replaced with the home directory associated with the specified login name.
 
-If the tilde-prefix is ‘__~+__’, the value of the shell variable PWD replaces the tilde-prefix. If the tilde-prefix is ‘~-’, the value of the shell variable OLDPWD, if it is set, is substituted.
+If the tilde-prefix is ‘__~+__’, the value of the shell variable **PWD** replaces the tilde-prefix. If the tilde-prefix is ‘~-’, the value of the shell variable **OLDPWD**, if it is set, is substituted.
 
-If the characters following the tilde in the tilde-prefix consist of a number N, optionally prefixed by a ‘+’ or a ‘-’, the tilde-prefix is replaced with the corresponding element from the directory stack, as it would be displayed by the dirs builtin invoked with the characters following tilde in the tilde-prefix as an argument (see The Directory Stack). If the tilde-prefix, sans the tilde, consists of a number without a leading ‘+’ or ‘-’, ‘+’ is assumed.
+If the characters following the tilde in the tilde-prefix consist of a number N, optionally prefixed by a ‘+’ or a ‘-’, the tilde-prefix is replaced with the corresponding element from the __directory stack__, as it would be displayed by the dirs builtin invoked with the characters following tilde in the tilde-prefix as an argument (see The Directory Stack). If the tilde-prefix, sans the tilde, consists of a number without a leading ‘+’ or ‘-’, ‘+’ is assumed.
 
 If the login name is invalid, or the tilde expansion fails, the word is left unchanged.
 
@@ -888,11 +897,11 @@ __${parameter:offset:length}__
     length must evaluate to a number greater than or equal to zero. If offset evaluates to a number __less than zero__, the value is used as an offset __from the end__ of the value of parameter. If parameter is __‘@’__, the result is length positional parameters beginning at offset. If parameter is an indexed array name subscripted by ‘@’ or ‘*’, the result is the length members of the array beginning with ${parameter[offset]}. A negative offset is taken relative to one greater than the maximum index of the specified array. Substring expansion applied to an associative array produces undefined results.
 
     Note that a negative offset must be separated from the colon by at least one space to avoid being confused with the ‘:-’ expansion. Substring indexing is zero-based unless the positional parameters are used, in which case the indexing starts at 1 by default. If offset is 0, and the positional parameters are used, $@ is prefixed to the list.
-${!prefix*}
-${!prefix@}
+**${!prefix*}**
+**${!prefix@}**
     Expands to the names of variables whose names begin with prefix, separated by the first character of the IFS special variable. When ‘@’ is used and the expansion appears within double quotes, each variable name expands to a separate word.
-${!name[@]}
-${!name[*]}
+**${!name[@]}**
+**${!name[*]}**
     If name is an array variable, expands to the list of array indices (keys) assigned in name. If name is not an array, expands to 0 if name is set and null otherwise. When ‘@’ is used and the expansion appears within double quotes, each key expands to a separate word.
 **${#parameter}**
     The length in characters of the expanded value of parameter is substituted. If parameter is ‘*’ or ‘@’, the value substituted is the number of positional parameters. If parameter is an array name subscripted by ‘*’ or ‘@’, the value substituted is the number of elements in the array.
@@ -904,10 +913,10 @@ ${!name[*]}
     The word is expanded to produce a pattern just as in filename expansion. If the pattern matches a trailing portion of the expanded value of parameter, then the result of the expansion is the value of parameter with the shortest matching pattern (the ‘%’ case) or the longest matching pattern (the ‘%%’ case) deleted. If parameter is ‘@’ or ‘*’, the pattern removal operation is applied to each positional parameter in turn, and the expansion is the resultant list. If parameter is an array variable subscripted with ‘@’ or ‘*’, the pattern removal operation is applied to each member of the array in turn, and the expansion is the resultant list.
 **${parameter/pattern/string}**
     The pattern is expanded to produce a pattern just as in filename expansion. Parameter is expanded and the longest match of pattern against its value is replaced with string. If pattern begins with ‘/’, all matches of pattern are replaced with string. Normally only the first match is replaced. If pattern begins with ‘#’, it must match at the beginning of the expanded value of parameter. If pattern begins with ‘%’, it must match at the end of the expanded value of parameter. If string is null, matches of pattern are deleted and the / following pattern may be omitted. If parameter is ‘@’ or ‘*’, the substitution operation is applied to each positional parameter in turn, and the expansion is the resultant list. If parameter is an array variable subscripted with ‘@’ or ‘*’, the substitution operation is applied to each member of the array in turn, and the expansion is the resultant list.
-${parameter^pattern}
-${parameter^^pattern}
-${parameter,pattern}
-${parameter,,pattern}
+**${parameter^pattern}**
+**${parameter^^pattern}**
+**${parameter,pattern}**
+**${parameter,,pattern}**
     This expansion modifies the case of alphabetic characters in parameter. The pattern is expanded to produce a pattern just as in filename expansion. The ‘^’ operator converts lowercase letters matching pattern to uppercase; the ‘,’ operator converts matching uppercase letters to lowercase. The ‘^^’ and ‘,,’ expansions convert each matched character in the expanded value; the ‘^’ and ‘,’ expansions match and convert only the first character in the expanded value. If pattern is omitted, it is treated like a ‘?’, which matches every character. If parameter is ‘@’ or ‘*’, the case modification operation is applied to each positional parameter in turn, and the expansion is the resultant list. If parameter is an array variable subscripted with ‘@’ or ‘*’, the case modification operation is applied to each member of the array in turn, and the expansion is the resultant list. 
 
 

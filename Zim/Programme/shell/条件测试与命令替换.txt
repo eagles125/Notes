@@ -160,3 +160,10 @@ k=5, 0
 [geekard@geekard ~]$ 
 
 
+==== 注意： ====
+[[ expression ]]
+其中的expression为Conditional expression，分词和文件名扩展不会被使用，其它类型的扩展会被使用。
+expression中可以使用<、>操作符，但是__不能使用<=, >=操作符__。
+expression中可以使用==、!=、=～操作符，但是__不能使用!~操作符。__
+exprssion前可以有！，而且它的优先级比&&和||高。可以用()将expression分组，统一在前面取反。
+

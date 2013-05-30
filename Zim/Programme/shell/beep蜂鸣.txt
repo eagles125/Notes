@@ -8,3 +8,6 @@ Created Sunday 26 February 2012
 可以使用命令：
 # echo -ne '\a' 
 但是不能将上述命令的输出重定向，否则不会响铃。
+
+也可使用：
+# echo $'\a'

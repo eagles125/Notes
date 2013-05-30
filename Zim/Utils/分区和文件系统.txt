@@ -1,0 +1,24 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2013-05-29T09:54:33+08:00
+
+====== 分区和文件系统 ======
+Created Wednesday 29 May 2013
+
+磁盘分区：
+
+文件系统：
+1. 创建文件系统
+mke2fs、mkfs
+2. 查看文件系统信息
+dumpe2fs
+blkid
+lsblk
+badblocks
+e2label
+e2image
+3.调整文件系统
+tune2fs
+resize2fs
+4.修复文件系统
+e2fsck、fsck

@@ -108,6 +108,10 @@ ruby
 python-pip python2-pip
 pulseaudio
 guvcview #摄像头捕获程序
+bc 
+parted
+
+
 添加geekard用户，并设置密码：
 useradd -m geekard
 passwd geekard 

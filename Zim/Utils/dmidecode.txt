@@ -1,0 +1,16 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2013-05-29T19:49:32+08:00
+
+====== dmidecode ======
+Created Wednesday 29 May 2013
+
+dmidecode和biosdecode是两个用来探测系统硬件配置信息的工具。
+dmidecode会打印出：
+1. BIOS版本、日期
+2. 主板OEM厂商、序列号(SN)、型号。
+3. 主板上各种插槽类型、数量
+	a. CPU插槽数量，插的CPU类型。
+	b. 内存插槽数量、类型
+        c. PCI/PCI-e插槽数量、类型。注意，不会具体打印出PCI插槽上的设备，可以用lspci查看
+        d.串口、网口、USB、VGA等。。。

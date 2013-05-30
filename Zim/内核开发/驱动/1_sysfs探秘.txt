@@ -1,0 +1,399 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2013-05-29T20:38:12+08:00
+
+====== 1 sysfs探秘 ======
+Created Wednesday 29 May 2013
+
+1. linux的所有设备（device）都是通过控制器挂接在总线上的，总线扫描到设备时，会根据它提供的配置信息，将其与某个驱动（driver）绑定。
+
+3. linux的所有总线位于/sys/bus下，其中最重要的是PCI总线，因为现在的系统都是基于PCI总线结构组织起来的。USB、Serial、SCSI、i2c等一般
+通过bridge桥接到PCI总线上。
+	[geekard@geekard sys]$ ls /sys/
+	block  bus  class  dev  devices  firmware  fs  hypervisor  kernel  module  power
+
+3. sysfs中某条总线用struct bus_type来表示(因为该结构提中**包含kobject对象成员**，所以struct bus如pci bus才会在/sys中表现为一个目录)，该结构中包含该总线所挂接的设备，以及它们使用的驱动，所以/sys/bus/pci/下面一般都会有devices和drivers目录。
+	[geekard@geekard sys]$ ls /sys/bus/
+	acpi         cpu    hid  machinecheck  memory  node  pci_express  pnp      scsi  serio  usb  xen-backend
+	clocksource  event_source  i2c  media         mmc     pci   platform     rapidio  sdio  spi    xen
+	[geekard@geekard sys]$ ls /sys/bus/pci -F
+	__devices/  drivers/__  **drivers_autoprobe  drivers_probe**  rescan  resource_alignment  slots/  uevent
+
+4. devices目录中的各设备其实是/sys/devices目录中设备的符号链接，这是因为struct bus中保存的只是struct device的__指针链表(位于sturct bus_type-->struct subsys_private *p-->struct klist klist_devices)__。系统所有的设备位于**/sys/devices**目录中。
+[geekard@geekard pci]$ ls -l devices/
+total 0
+lrwxrwxrwx 1 root root 0 May 29 11:57 0000:00:00.0 -> ../../..__/devices/__pci0000:00/0000:00:00.0
+lrwxrwxrwx 1 root root 0 May 29 11:57 0000:00:02.0 -> ../../../devices/pci0000:00/0000:00:02.0
+lrwxrwxrwx 1 root root 0 May 29 11:57 0000:00:16.0 -> ../../../devices/pci0000:00/0000:00:16.0
+lrwxrwxrwx 1 root root 0 May 29 11:57 0000:00:19.0 -> ../../../devices/pci0000:00/0000:00:19.0
+lrwxrwxrwx 1 root root 0 May 29 11:57 0000:00:1a.0 -> ../../../devices/pci0000:00/0000:00:1a.0
+lrwxrwxrwx 1 root root 0 May 29 11:57 0000:00:1b.0 -> ../../../devices/pci0000:00/0000:00:1b.0
+lrwxrwxrwx 1 root root 0 May 29 11:57 0000:00:1c.0 -> ../../../devices/pci0000:00/0000:00:1c.0
+lrwxrwxrwx 1 root root 0 May 29 11:57 0000:00:1c.1 -> ../../../devices/pci0000:00/0000:00:1c.1
+lrwxrwxrwx 1 root root 0 May 29 11:57 0000:00:1c.3 -> ../../../devices/pci0000:00/0000:00:1c.3
+lrwxrwxrwx 1 root root 0 May 29 11:57 0000:00:1c.4 -> ../../../devices/pci0000:00/0000:00:1c.4
+lrwxrwxrwx 1 root root 0 May 29 11:57 0000:00:1d.0 -> ../../../devices/pci0000:00/0000:00:1d.0
+lrwxrwxrwx 1 root root 0 May 29 11:57 0000:00:1f.0 -> ../../../devices/pci0000:00/0000:00:1f.0
+lrwxrwxrwx 1 root root 0 May 29 11:57 0000:00:1f.2 -> ../../../devices/pci0000:00/0000:00:1f.2
+lrwxrwxrwx 1 root root 0 May 29 11:57 0000:00:1f.3 -> ../../../devices/pci0000:00/0000:00:1f.3
+lrwxrwxrwx 1 root root 0 May 29 11:57 0000:03:00.0 -> ../../../devices/pci0000:00/0000:00:1c.1/0000:03:00.0
+lrwxrwxrwx 1 root root 0 May 29 11:57 0000:0d:00.0 -> ../../../devices/pci0000:00/0000:00:1c.4/0000:0d:00.0
+
+5. drivers目录中是该总线上设备使用的驱动(driver)程序。注意，这里__是实际目录而非链接__。
+[geekard@geekard pci]$ ls drivers -l
+total 0
+drwxr-xr-x 2 root root 0 May 29 11:57 agpgart-intel
+drwxr-xr-x 2 root root 0 May 29 11:57 ahci
+drwxr-xr-x 2 root root 0 May 29 11:57 e1000e
+drwxr-xr-x 2 root root 0 May 29 11:57 ehci-pci
+drwxr-xr-x 2 root root 0 May 29 11:57 i801_smbus
+drwxr-xr-x 2 root root 0 May 29 11:57 i915
+drwxr-xr-x 2 root root 0 May 29 11:57 ioapic
+drwxr-xr-x 2 root root 0 May 29 11:57 iwlwifi
+drwxr-xr-x 2 root root 0 May 29 11:57 langwell_gpio
+drwxr-xr-x 2 root root 0 May 29 11:57 lpc_ich
+drwxr-xr-x 2 root root 0 May 29 11:57 mei
+drwxr-xr-x 2 root root 0 May 29 11:57 pcieport
+drwxr-xr-x 2 root root 0 May 29 11:57 sdhci-pci
+drwxr-xr-x 2 root root 0 May 29 11:57 serial
+drwxr-xr-x 2 root root 0 May 29 11:57 snd_hda_intel
+drwxr-xr-x 2 root root 0 May 29 11:57 tsi721
+drwxr-xr-x 2 root root 0 May 29 11:57 xen-platform-pci
+
+6. /sys/bus/pci目录中两个文件drivers_autoprobe  drivers_probe其实是__bus kobject对象的属性__。这两个文件的值为1, 表示在插入设备或加载驱动时，会自动探测对方是否存在。
+
+7. 驱动的结构体为struct device_driver，其中包含它所绑定的**设备指针链表**，它所使用的**内核模块(module)指针。**
+**注意：**
+	1. 一个设备统一时刻只能绑定一个驱动程序，但是同一个启动程序可以与多个设备相绑定(所以驱动目录下可能有多个设备链接文件)。
+	2. **驱动其实是以module的形式提供的**，不管该module是静态编译到内核中，还是从用户空间动态载入的。driver一般与包含它的module同名。
+	3. 系统所有载入的modules位于**/sys/module**目录。
+	4. 每载入一个module，都会在**/proc/devices**中添加该module注册的设备号和设备名称。
+
+	[geekard@geekard drivers]$ ls -l e1000e/
+	total 0
+	lrwxrwxrwx 1 root root    0 May 29 20:55 __0000:00:19.0__ -> ../../../../devices/pci0000:00/0000:00:19.0
+	--w------- 1 root root 4096 May 29 20:54 bind
+	lrwxrwxrwx 1 root root    0 May 29 20:55 __module__ -> ../../../../module/e1000e
+	--w------- 1 root root 4096 May 29 20:54 new_id
+	--w------- 1 root root 4096 May 29 20:54 remove_id
+	--w------- 1 root root 4096 May 29 11:57 uevent
+	--w------- 1 root root 4096 May 29 20:54 unbind
+	
+8. 驱动结构体struct device_driver中的bind、unbind、new_id、remove_id属性文件分别用来关联设备和增加该驱动支持的设备ID：
+    1. 通过向unbind文件中写入当前已经bind的设备ID(如PCI设备ID，USB设备ID)，即可解除该设备与驱动的关联如：
+		echo -n "1-1:1.0" > [[/sys/bus/usb/drivers/ub/unbind]]   #解除ID为1-1：1.0的USB设备与ub驱动的关联。  
+    2. 可以到设备目录查看是否真正地解除了驱动关联，该目录中应该没有driver符号链接文件。
+    3. 查找或载入另一个另一个支持该设备的驱动，然后向其bind文件，添加待关联的设备ID：
+		 echo -n "1-1:1.0" > [[/sys/bus/usb/drivers/usb-storage/bind]]
+	这样就可以将1-1:1.0设备的驱动从ub替换为usb-storage.
+    4. 设备能与驱动绑定成功的前提是驱动已经支持该设备，这是通过在驱动程序源代码中添加其支持设备的ID信息(如PCI设备的Vender/Device/Class ID等)达到的。对于**已经编译好**的驱动程序，要想改变其支持的设备，可以将设备标识信息添加到**new_id**文件中，remove_id用于移除已经添加的设备ID。
+    
+9. 设备信息示例：
+	1 . 设备目录中包含了与该设备相关的所有信息。
+	2. **driver**指向该设备关联的驱动程序目录。
+	3. 对于PCI设备，其目录中的vendor、device、class和modalias文件标识了该设备的信息。其中modalias内容可以添加到PCI驱动的**new_id或remove_id文件中**。
+	 [geekard@geekard 0000:00:19.0]$ cat **vendor device class modalias** 
+		0x8086
+		0x1502
+		0x020000
+		20
+		pci:v00008086d00001502sv000017AAsd000021CEbc02sc00i00
+	[geekard@geekard 0000:00:19.0]$ 
+	4. **/usr/share/hwdata**目录中的__pci.ids和usb.ids__包含了vendor id和device id所对应的具体信息（lspci和lsusb就是从这两个文件中提取id和名称的对应信息）。
+	5. 驱动程序中一般包含了该驱动所支持的设备modalias列表，如e1000e驱动支持的部分设备如下：
+		[geekard@geekard ~]$ __modinfo__ e1000e
+		__filename:__       /lib/modules/3.9.3-1-ARCH/kernel/drivers/net/ethernet/intel/e1000e/e1000e.ko.gz
+		version:        2.2.14-k
+		license:        GPL
+		description:    Intel(R) PRO/1000 Network Driver
+		author:         Intel Corporation, <linux.nics@intel.com>
+		srcversion:     28B371A0E50A24E26204016
+		alias:          pci:v00008086d00001559sv*sd*bc*sc*i*
+		alias:          pci:v00008086d0000155Asv*sd*bc*sc*i*
+		alias:          pci:v00008086d0000153Bsv*sd*bc*sc*i*
+		alias:          pci:v00008086d0000153Asv*sd*bc*sc*i*
+		alias:          pci:v00008086d00001503sv*sd*bc*sc*i*
+		alias:          pci:v00008086d00001502sv*sd*bc*sc*i*
+		alias:          pci:v00008086d000010F0sv*sd*bc*sc*i*
+		alias:          pci:v00008086d000010EFsv*sd*bc*sc*i*
+		alias:          pci:v00008086d000010EBsv*sd*bc*sc*i*
+		__alias:__          pci:v00008086d000010EAsv*sd*bc*sc*i*
+		             。。。。。。。。。。。。。。。。。
+		__depends:__        ptp
+		intree:         Y
+		__vermagic:__       3.9.3-1-ARCH SMP preempt mod_unload modversions 
+		__parm:__           debug:Debug level (0=none,...,16=all) (int)
+		parm:           copybreak:Maximum size of packet that is copied to a new buffer on receive (uint)
+		parm:           TxIntDelay:Transmit Interrupt Delay (array of int)
+		parm:           TxAbsIntDelay:Transmit Absolute Interrupt Delay (array of int)
+		
+		驱动和它所支持的alias都保存在下面的modules.alias和modules.alias.bin文件中。
+		驱动模块间存在着依赖关系，安装了某个模块后，需要运行depmod命令来跟新下面的modules.dep和modules.dep.bin文件。
+		已经编译到内核中的模块信息保存在modules.builtin文件中。
+		
+		[geekard@geekard ~]$ ls /lib/modules/3.9.3-1-ARCH/ -l
+		total 3316
+		lrwxrwxrwx  1 root root     31 May 20 04:55 build -> ../../../src/linux-3.9.3-1-ARCH
+		drwxr-xr-x  2 root root   4096 May 27 14:56 extra
+		lrwxrwxrwx  1 root root     24 May 20 04:55 extramodules -> ../extramodules-3.9-ARCH
+		drwxr-xr-x 12 root root   4096 May 20 04:53 kernel
+		-rw-r--r--  1 root root 786234 May 27 14:57 **modules.alias**
+		-rw-r--r--  1 root root 771986 May 27 14:57 modules.alias.bin
+		-rw-r--r--  1 root root   2753 May 20 04:53 **modules.builtin**
+		-rw-r--r--  1 root root   3825 May 27 14:57 modules.builtin.bin
+		-rw-r--r--  1 root root 387794 May 27 14:57 **modules.dep**
+		-rw-r--r--  1 root root 526151 May 27 14:57 modules.dep.bin
+		-rw-r--r--  1 root root    330 May 27 14:57 modules.devname
+		-rw-r--r--  1 root root 118198 May 20 04:53 modules.order
+		-rw-r--r--  1 root root    131 May 27 14:57 modules.softdep
+		-rw-r--r--  1 root root 343584 May 27 14:57 modules.symbols
+		-rw-r--r--  1 root root 428989 May 27 14:57 modules.symbols.bin
+		
+		6.uevent是发给用户空间udev的信息，__udev可以根据其中的modalias加载合适的驱动__。
+		[geekard@geekard 0000:00:19.0]$ cat uevent 
+		DRIVER=e1000e
+		PCI_CLASS=20000
+		PCI_ID=8086:1502
+		PCI_SUBSYS_ID=17AA:21CE
+		PCI_SLOT_NAME=0000:00:19.0
+		MODALIAS=pci:v00008086d00001502sv000017AAsd000021CEbc02sc00i00
+		
+		  7. resource、resource[0-2]保存PCI设备的配置空间信息，可以使用__pci -x__来查看。
+		
+[geekard@geekard 0000:00:19.0]$ pwd
+__/sys/bus/pci/devices/0000:00:19.0   __#其实指向/sys/devices/pci0000:00/0000:00:19.0
+[geekard@geekard 0000:00:19.0]$ ls -l
+total 0
+-rw-r--r-- 1 root root   4096 May 29 20:10 broken_parity_status
+-r--r--r-- 1 root root   4096 May 29 20:10 class
+-rw-r--r-- 1 root root    256 May 29 11:57 config
+-r--r--r-- 1 root root   4096 May 29 20:10 consistent_dma_mask_bits
+-rw-r--r-- 1 root root   4096 May 29 20:10 d3cold_allowed
+-r--r--r-- 1 root root   4096 May 29 11:57 device
+-r--r--r-- 1 root root   4096 May 29 20:10 dma_mask_bits
+lrwxrwxrwx 1 root root      0 May 29 11:57 __driver -> ../../../bus/pci/drivers/e1000e   #驱动一般与模块同名。__
+-rw------- 1 root root   4096 May 29 20:10 enable
+lrwxrwxrwx 1 root root      0 May 29 20:10 firmware_node -> ../../LNXSYSTM:00/LNXSYBUS:00/PNP0A08:00/device:12
+-r--r--r-- 1 root root   4096 May 29 20:10 __irq__
+-r--r--r-- 1 root root   4096 May 29 20:10 local_cpulist
+-r--r--r-- 1 root root   4096 May 29 20:10 local_cpus
+-r--r--r-- 1 root root   4096 May 29 20:10 __modalias__
+-rw-r--r-- 1 root root   4096 May 29 20:10 msi_bus
+drwxr-xr-x 3 root root      0 May 29 11:57 **net**
+-r--r--r-- 1 root root   4096 May 29 20:10 numa_node
+drwxr-xr-x 2 root root      0 May 29 11:57 power
+drwxr-xr-x 3 root root      0 May 29 11:57 ptp
+--w--w---- 1 root root   4096 May 29 20:10 remove
+--w--w---- 1 root root   4096 May 29 20:10 rescan
+--w------- 1 root root   4096 May 29 20:10 reset
+-r--r--r-- 1 root root   4096 May 29 20:10 resource
+-rw------- 1 root root 131072 May 29 20:10 resource0
+-rw------- 1 root root   4096 May 29 20:10 resource1
+-rw------- 1 root root     32 May 29 20:10 resource2
+lrwxrwxrwx 1 root root      0 May 29 11:57 __subsystem -> ../../../bus/pci__
+-r--r--r-- 1 root root   4096 May 29 20:10 subsystem_device
+-r--r--r-- 1 root root   4096 May 29 20:10 subsystem_vendor
+-rw-r--r-- 1 root root   4096 May 29 11:57 __uevent__
+-r--r--r-- 1 root root   4096 May 29 11:57 vendor
+[geekard@geekard 0000:00:19.0]$
+    
+
+ 8. 其中的net目录说明该设备是一个__网络设备__。
+**[geekard@geekard 0000:00:1c.1]$ pwd**
+/sys/devices/pci0000:00/__0000:00:1c.1__
+**[geekard@geekard 0000:00:1c.1]$ ls -l**
+total 0
+drwxr-xr-x 7 root root    0 May 29 11:57 __0000:03:00.0__
+-rw-r--r-- 1 root root 4096 May 29 20:10 broken_parity_status
+-r--r--r-- 1 root root 4096 May 29 20:10 class
+-rw-r--r-- 1 root root 4096 May 29 12:17 config
+-r--r--r-- 1 root root 4096 May 29 20:10 consistent_dma_mask_bits
+-rw-r--r-- 1 root root 4096 May 29 20:10 d3cold_allowed
+-r--r--r-- 1 root root 4096 May 29 20:10 device
+-r--r--r-- 1 root root 4096 May 29 20:10 dma_mask_bits
+lrwxrwxrwx 1 root root    0 May 29 11:57 __driver -> ../../../bus/pci/drivers/pcieport__
+-rw------- 1 root root 4096 May 29 20:10 enable
+lrwxrwxrwx 1 root root    0 May 29 20:10 firmware_node -> ../../LNXSYSTM:00/LNXSYBUS:00/PNP0A08:00/device:14
+-r--r--r-- 1 root root 4096 May 29 20:10 irq
+-r--r--r-- 1 root root 4096 May 29 20:10 local_cpulist
+-r--r--r-- 1 root root 4096 May 29 20:10 local_cpus
+-r--r--r-- 1 root root 4096 May 29 20:10 modalias
+-rw-r--r-- 1 root root 4096 May 29 20:10 msi_bus
+-r--r--r-- 1 root root 4096 May 29 20:10 numa_node
+drwxr-xr-x 3 root root    0 May 29 11:57 pci_bus
+drwxr-xr-x 2 root root    0 May 29 11:57 power
+--w--w---- 1 root root 4096 May 29 20:10 remove
+--w--w---- 1 root root 4096 May 29 20:10 rescan
+--w------- 1 root root 4096 May 29 20:10 reset
+-r--r--r-- 1 root root 4096 May 29 20:10 resource
+lrwxrwxrwx 1 root root    0 May 29 11:57 subsystem -> ../../../bus/pci
+-r--r--r-- 1 root root 4096 May 29 20:10 subsystem_device
+-r--r--r-- 1 root root 4096 May 29 20:10 subsystem_vendor
+-rw-r--r-- 1 root root 4096 May 29 11:57 uevent
+-r--r--r-- 1 root root 4096 May 29 20:10 vendor
+**[geekard@geekard 0000:03:00.0]$ pwd**
+__/sys/devices/pci0000:00/0000:00:1c.1/0000:03:00.0__
+**[geekard@geekard 0000:03:00.0]$ ls -lF**
+total 0
+-rw-r--r-- 1 root root 4096 May 29 20:10 broken_parity_status
+-r--r--r-- 1 root root 4096 May 29 20:10 class
+-rw-r--r-- 1 root root 4096 May 29 11:57 config
+-r--r--r-- 1 root root 4096 May 29 20:10 consistent_dma_mask_bits
+-rw-r--r-- 1 root root 4096 May 29 20:10 d3cold_allowed
+-r--r--r-- 1 root root 4096 May 29 11:57 device
+-r--r--r-- 1 root root 4096 May 29 20:10 dma_mask_bits
+lrwxrwxrwx 1 root root    0 May 29 11:57 __driver -> ../../../../bus/pci/drivers/iwlwifi/__
+-rw------- 1 root root 4096 May 29 12:17 enable
+drwxr-xr-x 3 root root    0 May 29 11:57 __ieee80211/__
+-r--r--r-- 1 root root 4096 May 29 20:10 irq
+drwxr-xr-x 3 root root    0 May 29 11:57 leds/
+-r--r--r-- 1 root root 4096 May 29 20:10 local_cpulist
+-r--r--r-- 1 root root 4096 May 29 20:10 local_cpus
+-r--r--r-- 1 root root 4096 May 29 20:10 modalias
+-rw-r--r-- 1 root root 4096 May 29 20:10 msi_bus
+drwxr-xr-x 3 root root    0 May 29 20:10 __msi_irqs/__
+drwxr-xr-x 3 root root    0 May 29 11:57 __net/__
+-r--r--r-- 1 root root 4096 May 29 20:10 numa_node
+drwxr-xr-x 2 root root    0 May 29 11:57 power/
+--w--w---- 1 root root 4096 May 29 20:10 remove
+--w--w---- 1 root root 4096 May 29 20:10 rescan
+--w------- 1 root root 4096 May 29 20:10 reset
+-r--r--r-- 1 root root 4096 May 29 20:10 resource
+-rw------- 1 root root 8192 May 29 20:10 resource0
+lrwxrwxrwx 1 root root    0 May 29 11:57 subsystem -> ../../../../bus/pci/
+-r--r--r-- 1 root root 4096 May 29 20:10 subsystem_device
+-r--r--r-- 1 root root 4096 May 29 20:10 subsystem_vendor
+-rw-r--r-- 1 root root 4096 May 29 11:57 uevent
+-r--r--r-- 1 root root 4096 May 29 11:57 vendor
+[geekard@geekard 0000:03:00.0]$ ls ieee80211/ -l
+total 0
+drwxr-xr-x 4 root root 0 May 29 11:57 __phy0__
+**[geekard@geekard 0000:03:00.0]$ ls -lF ieee80211/phy0/** 
+total 0
+-r--r--r-- 1 root root 4096 May 29 22:29 addresses
+-r--r--r-- 1 root root 4096 May 29 22:29 address_mask
+lrwxrwxrwx 1 root root    0 May 29 22:29 device -> ../../../0000:03:00.0/
+-r--r--r-- 1 root root 4096 May 29 22:29 index
+-r--r--r-- 1 root root 4096 May 29 22:29 macaddress
+-r--r--r-- 1 root root 4096 May 29 11:57 name
+drwxr-xr-x 2 root root    0 May 29 22:29 power/
+drwxr-xr-x 3 root root    0 May 29 11:57 __rfkill0/__
+lrwxrwxrwx 1 root root    0 May 29 11:57 subsystem -> ../../../../../../class/ieee80211/
+-rw-r--r-- 1 root root 4096 May 29 11:57 uevent
+**[geekard@geekard 0000:03:00.0]$ ls leds/**__phy0-led/__
+brightness  device  max_brightness  power  subsystem  trigger  uevent
+**[geekard@geekard 0000:03:00.0]$ cat msi_irqs/**__43__**/mode** 
+msi
+**[geekard@geekard 0000:03:00.0]$ cat ieee80211/phy0/macaddress** 
+__8c:70:5a:f2:50:80__
+**[geekard@geekard 0000:03:00.0]$ ls -lF ieee80211/phy0/rfkill0/**
+total 0
+-rw-r--r-- 1 root root 4096 May 29 22:29 claim
+lrwxrwxrwx 1 root root    0 May 29 22:29 device -> ../../phy0/
+-r--r--r-- 1 root root 4096 May 29 22:29 hard
+-r--r--r-- 1 root root 4096 May 29 22:29 index
+-r--r--r-- 1 root root 4096 May 29 22:29 name
+-r--r--r-- 1 root root 4096 May 29 22:29 persistent
+drwxr-xr-x 2 root root    0 May 29 22:29 power/
+-rw-r--r-- 1 root root 4096 May 29 22:29 soft
+-rw-r--r-- 1 root root 4096 May 29 22:29 state
+lrwxrwxrwx 1 root root    0 May 29 12:17 subsystem -> ../../../../../../../**class/rfkill/**
+-r--r--r-- 1 root root 4096 May 29 22:29 type
+-rw-r--r-- 1 root root 4096 May 29 11:57 uevent
+**[geekard@geekard rfkill0]$ cat uevent** 
+RFKILL_NAME=phy0
+RFKILL_TYPE=__wlan__
+RFKILL_STATE=1
+[geekard@geekard wlp3s0]$ pwd
+/sys/devices/pci0000:00/0000:00:1c.1/0000:03:00.0/__net/wlp3s0__
+[geekard@geekard wlp3s0]$ ls -lF
+total 0
+-r--r--r-- 1 root root 4096 May 29 11:57 addr_assign_type
+-r--r--r-- 1 root root 4096 May 29 11:57 **address**
+-r--r--r-- 1 root root 4096 May 29 22:36 **addr_len **
+-r--r--r-- 1 root root 4096 May 29 22:36 **broadcast   #包含该接口的mac地址、长度和广播mac地址。**
+-rw-r--r-- 1 root root 4096 May 29 22:36 carrier  #该接口是否有载波，即是否在线。
+lrwxrwxrwx 1 root root    0 May 29 11:57 device -> ../../../0000:03:00.0/
+-r--r--r-- 1 root root 4096 May 29 11:57 dev_id
+-r--r--r-- 1 root root 4096 May 29 22:36 dormant
+-r--r--r-- 1 root root 4096 May 29 22:36 duplex  #单双工？
+-rw-r--r-- 1 root root 4096 May 29 11:57 flags
+-rw-r--r-- 1 root root 4096 May 29 22:36 ifalias
+-r--r--r-- 1 root root 4096 May 29 11:57 ifindex
+-r--r--r-- 1 root root 4096 May 29 11:57 iflink
+-r--r--r-- 1 root root 4096 May 29 22:36 link_mode
+-rw-r--r-- 1 root root 4096 May 29 20:59 __mtu__
+-rw-r--r-- 1 root root 4096 May 29 22:36 netdev_group
+-r--r--r-- 1 root root 4096 May 29 22:36 __operstate__
+lrwxrwxrwx 1 root root    0 May 29 11:57 phy80211 -> ../../ieee80211/phy0/
+drwxr-xr-x 2 root root    0 May 29 22:36 power/
+drwxr-xr-x 7 root root    0 May 29 22:36 __queues/__
+-r--r--r-- 1 root root 4096 May 29 22:36 __speed__
+drwxr-xr-x 2 root root    0 May 29 12:18 __statistics/__
+lrwxrwxrwx 1 root root    0 May 29 12:17 subsystem -> ../../../../../../class/net/
+-rw-r--r-- 1 root root 4096 May 29 22:36 __tx_queue_len__
+-r--r--r-- 1 root root 4096 May 29 11:57 type
+-rw-r--r-- 1 root root 4096 May 29 11:57 uevent
+drwxr-xr-x 2 root root    0 May 29 12:17 wireless/
+[geekard@geekard wlp3s0]$ 
+**[geekard@geekard wlp3s0]$ ls queues/* -l**
+queues/rx-0:
+total 0
+-rw-r--r-- 1 root root 4096 May 29 22:42 rps_cpus
+-rw-r--r-- 1 root root 4096 May 29 22:42 rps_flow_cnt
+
+queues/tx-0:
+total 0
+drwxr-xr-x 2 root root    0 May 29 22:42 byte_queue_limits
+-r--r--r-- 1 root root 4096 May 29 22:42 tx_timeout
+-rw-r--r-- 1 root root 4096 May 29 22:42 xps_cpus
+
+queues/tx-1:
+total 0
+drwxr-xr-x 2 root root    0 May 29 22:42 byte_queue_limits
+-r--r--r-- 1 root root 4096 May 29 22:42 tx_timeout
+-rw-r--r-- 1 root root 4096 May 29 22:42 xps_cpus
+
+queues/tx-2:
+total 0
+drwxr-xr-x 2 root root    0 May 29 22:42 byte_queue_limits
+-r--r--r-- 1 root root 4096 May 29 22:42 tx_timeout
+-rw-r--r-- 1 root root 4096 May 29 22:42 xps_cpus
+
+queues/tx-3:
+total 0
+drwxr-xr-x 2 root root    0 May 29 22:42 byte_queue_limits
+-r--r--r-- 1 root root 4096 May 29 22:42 tx_timeout
+-rw-r--r-- 1 root root 4096 May 29 22:42 xps_cpus
+**[geekard@geekard wlp3s0]$ ls queues/tx-0/byte_queue_limits/**
+hold_time  inflight  limit  limit_max  limit_min
+**[geekard@geekard wlp3s0]$ ls statistics/ -lF**
+total 0
+-r--r--r-- 1 root root 4096 May 29 22:39 collisions
+-r--r--r-- 1 root root 4096 May 29 22:39 multicast
+-r--r--r-- 1 root root 4096 May 29 12:18 rx_bytes
+-r--r--r-- 1 root root 4096 May 29 22:39 rx_compressed
+-r--r--r-- 1 root root 4096 May 29 22:39 rx_crc_errors
+-r--r--r-- 1 root root 4096 May 29 22:39 rx_dropped
+-r--r--r-- 1 root root 4096 May 29 22:39 rx_errors
+-r--r--r-- 1 root root 4096 May 29 22:39 rx_fifo_errors
+-r--r--r-- 1 root root 4096 May 29 22:39 rx_frame_errors
+-r--r--r-- 1 root root 4096 May 29 22:39 rx_length_errors
+-r--r--r-- 1 root root 4096 May 29 22:39 rx_missed_errors
+-r--r--r-- 1 root root 4096 May 29 22:39 rx_over_errors
+-r--r--r-- 1 root root 4096 May 29 22:39 rx_packets
+-r--r--r-- 1 root root 4096 May 29 22:39 tx_aborted_errors
+-r--r--r-- 1 root root 4096 May 29 12:18 tx_bytes
+-r--r--r-- 1 root root 4096 May 29 22:39 tx_carrier_errors
+-r--r--r-- 1 root root 4096 May 29 22:39 tx_compressed
+-r--r--r-- 1 root root 4096 May 29 22:39 tx_dropped
+-r--r--r-- 1 root root 4096 May 29 22:39 tx_errors
+-r--r--r-- 1 root root 4096 May 29 22:39 tx_fifo_errors
+-r--r--r-- 1 root root 4096 May 29 22:39 tx_heartbeat_errors
+-r--r--r-- 1 root root 4096 May 29 22:39 tx_packets
+-r--r--r-- 1 root root 4096 May 29 22:39 tx_window_errors
+**[geekard@geekard wlp3s0]$ cat uevent** 
+DEVTYPE=wlan
+INTERFACE=__wlp3s0__
+IFINDEX=3
+[geekard@geekard wlp3s0]$ 

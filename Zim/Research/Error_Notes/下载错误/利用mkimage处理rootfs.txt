@@ -1,0 +1,9 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2013-05-27T18:40:51+08:00
+
+====== 利用mkimage处理rootfs ======
+Created Monday 27 May 2013
+www.denx.de/wiki/DULG/RootFileSystemOnARamdisk
+
+mkimage -T ramdisk -C gzip -n 'note messge'  -d input-file outputfile

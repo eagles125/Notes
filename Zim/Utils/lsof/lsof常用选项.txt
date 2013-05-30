@@ -1,0 +1,33 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2013-05-25T14:58:38+08:00
+
+====== lsof常用选项 ======
+Created Saturday 25 May 2013
+
+# lsof   #不加任何选项，打印系统所有进程打开的文件，这里的文件定义比较宽泛。注意，有些文件(如系统daemon监听的套接字)需要用__管理员权限执行lsof__才能显示出来。
+-h 答应lsof的简短选项列表
+-a 将命令行上__所有的__rquire list options相与，默认是OR的关系。如果同一个require出现多次，则lsof先将它们ORs，然后在对不同的require AND。
+-c c；选择所有以c开头的命令所打开的文件，-c可以指定多次，lsof在处理时会现将它们OR。c可以是基本命令，也可以是/pattern/[bix]的正则表达式形式。
++c n; 设置输出的命令名宽度，默认为9。如果__n为0__,则表示输出所有的字符。
++d s；输出打开s目录中的文件或子目录的进程;注意，-d选项不会递归地查找s的所有子目录。
+-d s;指定FD set，s可以是逗号分割的FD列表，也可以是m-n形式的range，还可以用^取反。
++D d; 同+d 选项，但是递归地查找d的所有子目录打开的文件
+-F f; f为单字符列表，表示输出的filed和各filed的分隔符，支持的单字符可以用-F？来查看。
+-g GID;用GID过滤输出
+-i i;i的格式为：
+	[46][protocol][@hostname|hostaddress][:service-name|port]
+	其中的protocol为tcp或udp; service-name和port可以为逗号分割的列表，也可以是range
+-K; 打印task或thread信息
+-l；禁止UID到login name的转换。这样输出的是UID而非login name。
++|-L [l];禁止(-)或启用(+)文件链接计数，当启用时，可以跟一个附加参数l，只会输出那些链接计数小于l的文件。比较特殊的勤快是l取值为1。
++|-M；启用或禁止打印portmapper信息，启用的话需要内核和glibc支持RPC。
+-n；禁止网络地址和主机名的转换。
+-N：选择NFS;
+-o：输出文件读写便宜量
+-p pid;用PID选择输出
+-P：禁止端口号与端口名称间的转换
+-|+r [t[m<fmt>]] :重复输出模式，+是重复输出，直到没有新打开的文件; -是endless输出。t指定延迟的秒数。m<fmt>指定每次输出的分割符，其中<fmt>是strftime()函数支持的形式。
+
+
+

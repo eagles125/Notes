@@ -84,5 +84,6 @@ fcitx — a input method
 evince — a simple pdf viewer
 iftop    --- interface top
 wv   — ms word to html
+tree   — 书型打印目录文件
 
 ###################################################################

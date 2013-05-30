@@ -20,16 +20,16 @@ If NAME is given, the following command must be a__ compound command__. If no NA
 
 ===== Redirections（这里的重定向是对于coproc里的command而言的） =====
 
-The redirections are normal redirections that are set __after the pipe has been set up__, some examples:
+The redirections are normal redirectio __after the pipe has been set up__, some examples:
 
 # redirecting stderr in the pipe
 $ coproc { ls thisfiledoesntexist; read ;} __2>&1 #1代表coproc的标准输出，即COPROC[1]__
 __#将在子shell里执行的{ ls thisfiledoesntexist; read ;}标准出错重定位到其标准输出(而不是当前shell的标准输出)。由于重定向是在pipe建立之后而且coproc的标准输入和标准输出是和执行该语句的当前shell相连接的，所以coproc的出错和输出将可以通过pipe访问到。__
 [2] 23084
 $ read -u ${__COPROC[0]__};printf "%s\n" "$REPLY"  
-ls: cannot access thisfiledoesntexist: No such file or directory   #coproc的出错可以通过其标准输出fd访问到。
+ls: cannot access this file doesnt exist: No such file or directory   #coproc的出错可以通过其标准输出fd访问到。
 
-#COPROC是__当前shell__中与coproc的标准输入/输出相连的描**述符数组，COPROC[0]与coproc的标准输出相连，COPROC[1]与coproc的标准输入相连**。
+#COPROC是__当前shell__中与coproc的标准输入/输出相连的**描述符数组，COPROC[0]与coproc的标准输出相连，COPROC[1]与coproc的标准输入相连**。
 
 #let the output of the coprocess go to stdout
 $ __{ coproc mycoproc { awk '{print "foo" $0;fflush()}' ;} >&3 ;} 3>&1__
@@ -114,7 +114,6 @@ nothing read
 
 Even though this example is the same as the first awk example, the read doesn't return, simply because the output is waiting in a buffer.
 
-
 ===== background processes =====
 
 The file descriptors of the coprocesses are __available to the shell where you run coproc__, but they are __not inherited__. Here a not so meaningful illustration, suppose we want something that continuely reads the output of our coprocess and echo the result:
@@ -122,7 +121,7 @@ The file descriptors of the coprocesses are __available to the shell where you r
 #NOT WORKING
 $ coproc awk '{print "foo" $0;fflush()}'
 [2] 23100
-$ while read -u ${COPROC[0]};do echo "$REPLY";done __&__
+$ while read -u ${COPROC[0]};do echo "$REPLY";done __& __
 [3] 23104
 $ ./bash: line 243: read: 61: invalid file descriptor: Bad file
 descriptor
@@ -144,11 +143,11 @@ $ foobar
 
 Here the** fd 3 is inherited**.
 
-===== Only one coprocess at a time =====
+===== Only one coprocess at a time  =====
 
 The title says it all, complain to the bug-bash mailing list if you want more.
 
-===== Examples =====
+===== Examples  =====
 
 === Anonymous Coprocess ===
 
@@ -176,12 +175,12 @@ $
 
 Using a named coprocess is as simple, we just need a compound command like when defining a function:
 
-$ coproc mycoproc __{ awk '{print "foo" $0;fflush()}' ;}__
+$ coproc mycoproc __{ awk '{print "foo" $0;fflush( )}' ;}__
 [1] 23058
 $ echo bar >&${mycoproc[1]}
 $ read -u ${mycoproc[0]};printf "%s\n" "$REPLY"
-foobar
-$ kill $mycoproc_PID
+foobar 
+$ kill $mycoproc_PID 
 $
 [1]+  Terminated              coproc mycoproc { awk '{print "foo" $0;fflush()}'; }
 

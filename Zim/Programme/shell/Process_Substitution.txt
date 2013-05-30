@@ -14,7 +14,7 @@ The syntax for process substitution is:
 or
   >(list)
 
-where each list is a command or a pipeline of commands. The effect of process substitution is to__ make each list act like a file__. This is done by **giving the list a name** in the file system and then** substituting that name in the command line**. The list is given a name either by connecting the list to named** pipe** or by using a file in **/dev/fd **(if supported by the O/S). By doing this, the command simply sees a file name and is unaware that its reading from or writing to a command pipeline.
+where each list is a simple command or a pipeline of commands. The effect of process substitution is to__ make each list act like a file__. This is done by **giving the list a name** in the file system and then** substituting that name in the command line**. The list is given a name either by connecting the list to **named pipe** or by using a file in **/dev/fd **(if supported by the O/S). By doing this, the command simply sees a file name and is unaware that its reading from or writing to a command pipeline.
 
 To substitute a command pipeline for an** input file** the syntax is:
 
@@ -71,9 +71,9 @@ Depending on your shell settings you may get an error message similar to:
 
   syntax error near unexpected token `('
 
-when you try to use process substitution, particularly if you try to use it within a shell script. Process substitution is not a POSIX compliant feature and so it may have to be enabled via:
+when you try to use process substitution, particularly if you try to use it within a shell script. Process substitution is __not a POSIX compliant feature__ and so it may have to be enabled via:
 
-  set +o posix
+  set +o posix    #关闭posix兼容模式
 
 Be careful not to try something like:
 
@@ -82,6 +82,6 @@ Be careful not to try something like:
     comm -3 <(sort a | uniq) <(sort b | uniq)
   fi
 
-The command set +o posix enables not only the execution of process substitution but the recognition of the syntax. So, in the example above the shell tries to parse the process substitution syntax before the "set" command is executed and therefore still sees the process substitution syntax as illegal.
+The command set +o posix enables not only the execution of process substitution but the recognition of the syntax. So, in the example above the shell tries to parse the process substitution syntax **before** the "set" command is executed and therefore still sees the process substitution syntax as illegal.
 
 Of course, note that all shells may not support process substitution, these examples will work with bash. 
