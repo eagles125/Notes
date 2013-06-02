@@ -110,7 +110,7 @@ pulseaudio
 guvcview #摄像头捕获程序
 bc 
 parted
-
+dosfstools  #提供mkfs.vfat程序
 
 添加geekard用户，并设置密码：
 useradd -m geekard

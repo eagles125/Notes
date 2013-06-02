@@ -1,0 +1,214 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2013-05-31T20:16:21+08:00
+
+====== gpt分区表(维基百科) ======
+Created Friday 31 May 2013
+from：维基百科
+In computer hardware, **GUID Partition Table (GPT)** is a standard for __the layout of the partition table__ on a physical hard disk, using globally **unique identifiers (GUID)**. 
+
+Although it forms a part of the __Unified Extensible Firmware Interface (UEFI)__ standard (Unified EFI Forum proposed replacement for the PC BIOS), it is also __used on some BIOS systems__ because of the limitations of MBR partition tables, which use 32 bits for storing logical block addresses and size information. For those disks with 512-byte sectors, the MBR partition table entries allow up to a maximum of __2 TiB__ (2^41 ,这是因为msdos分区表条目中只是用32bits来表示大小，所以单分区的最大容量为2^32*512=2TiB).[1]
+
+尽管GPT分区表时UEFI系统的一部分，但是它也用在一些BIOS系统上，以克服msdos分区表的局限。
+
+However, a number of disk manufacturers (Seagate & Western Digital) saw this limit approaching and updated their larger disks to __4 KB__ sectors, which raised the effective __limit for MBR to 16 TiB__. While theoretically the "correct" solution, this change **temporarily** lowered the need for GPT and introduced confusion in the market about how to best partition and boot a larger block device from the BIOS.[citation needed] 
+4KB大扇区暂时缓解了GPT的需求。
+
+GPT allocates __64 bits__ for logical block addresses and therefore allows a maximum partition size of 2^64−1 sectors. For disks with 512-byte sectors, that would be **9.4 ZB** (9.4 × 1021 bytes) or 8 ZiB−512 bytes (9,444,732,965,739,290,426,880 bytes or 18,446,744,073,709,551,615 (264−1) sectors × 512 (29) bytes per sector).[1][2]
+
+As of 2010, most current operating systems support GPT. Some, including OS X and Microsoft Windows, only support booting from GPT partitions on systems with EFI firmware, but most modern Linux distributions (such as Debian) can boot from GPT partitions on systems with __either legacy BIOS firmware interface or EFI.__
+linux系统支持在legacy BIOS或EFI固件接口的系统上从GPT分区启动。
+
+{{./GUID_Partition_Table_Scheme.svg.png}}
+Diagram illustrating the layout of GPT scheme. In this example, each __logical block (LBA)__ is 512 bytes in size, and __each partition entry is 128 bytes__, and the corresponding partition entries are assumed to be located in __LBA 2-33__, here. LBA addresses that are negative indicate position from __the end of the volume__, with −1 as the last addressable block.
+
+===== History =====
+Main articles: INT 13H and Enhanced BIOS
+
+The widespread __MBR partitioning scheme__, dating from the early 1980s, imposed limitations which affect the use of modern hardware. Intel therefore developed a new partition-table format in the late 1990s as part of what eventually became UEFI. __The GPT as of 2010 forms a subset of the UEFI specification__.[3]
+
+===== Features =====
+MBR-based partition table schemes insert the partitioning information for (usually) __four "primary" partitions__ in the master boot record (MBR) (which on **a BIOS system** is also the container for code that begins the process of booting the system). 
+
+__In a GPT, the first sector of the disk is reserved for a "protective MBR" such that booting a BIOS-based computer from a GPT disk is supported, but the boot loader and O/S must both be GPT aware. __Regardless of the sector size, the GPT header begins on the second logical block of the device.
+采用GPT分区表的硬盘，其第一个扇区被保留为Protective MBR，其作用是使BIOS系统支持从使用GPT分区表的硬盘分区启动，但这需要OS和Bootloader必须能识别GPT分区表(因为Bootloader需要向Protective MBR中写入一部分内容)。
+
+Like modern MBRs, GPTs use __logical block addressing (LBA)__ in place of the historical cylinder-head-sector (CHS) addressing. The protective MBR is contained in LBA 0, the GPT header is in LBA 1, and the GPT header has **a pointer** to the partition table, or __Partition Entry Array,__ typically LBA 2.
+
+ The UEFI specification[4] stipulates that __a minimum of 16,384 bytes__, regardless of sector size, be allocated for the Partition Entry Array. On a disk having 512-byte sectors, a partition entry array size of 16,384 bytes and the minimum size of 128 bytes for each partition entry, LBA 34 is the first usable sector on the disk.
+硬盘的第一个分区最早从__17KiB__开始。
+
+Hard disk manufacturers are __transitioning to 4,096-byte sectors__. As of 2010, the first such drives __continue to present 512-byte physical sectors to the OS__, so degraded performance can result when the drive's (hidden) internal 4 KiB sector boundaries do not coincide with the 4 KiB logical blocks, clusters and virtual memory pages common in many operating systems and file systems. This is a particular problem on writes when the drive is forced to perform two read-modify-write operations to satisfy a single misaligned 4 KiB write operation.[5] Such a misalignment occurs by default if the first partition is placed immediately after the GPT, as the next block is LBA 34, whereas the next 4 KiB boundary begins with __LBA 40__.
+近年来，硬盘的物理扇区大小逐渐为4KiB大小，但是对于OS而言，它看到的仍然为512Bit。这样，如果分区的边界不是4KiB的倍数，将会产生性能影响。所以**在使用parted工具在分区时如果指定的分区启示位置没有与4KiB对齐的话，会提示警告。注意，Kernel和应用程序看到的是逻辑扇区大小，所以即使物理扇区大小时4KB，但每一个LBA还是512KB。**
+
+For backward compatibility with most operating systems before Windows Vista, including DOS, OS/2 and Windows, MBR partitions must always __start on track boundaries __according to the traditional CHS addressing scheme and __end on a cylinder boundary.__ This even holds true for partitions with emulated CHS geometries (as reflected by the BIOS and the CHS sectors entries in the MBR partition table) or partitions accessed only via LBA. Extended partitions always start on cylinder boundaries as well.
+
+This typically causes the first primary partition to start at __LBA 63__ on disks accessed via LBA, leaving a gap of 62 sectors with MBR-based disks, sometimes called **"MBR gap"**, "boot track" or, "embedding area". (On older computers using alternative LBA/CHS translation schemes or different extended CHS mappings, with smaller LBA-accessed disks, or on disks accessed via CHS only, the value could be even smaller (but not normally less than LBA 16 on normal harddisks).)
+
+Since Windows Vista, the first partition usually starts after a gap of 2,047 sectors at LBA 2,048 as part of its __new 1 MiB partition alignment__ policy, so no large-sector misalignment occurs by default, but serious compatibility problems with older operating systems and disk tools exist.
+
+Drives which boot Intel-based Macs are typically formatted with a __GPT__, rather than with the Apple Partition Map (APM).
+
+GPT also __provides redundancy__, writing the GPT header and partition table both at the beginning and at the end of the disk. If the minimum size of 16,384 bytes is allocated for the partition entry array, and the default size of 128 bytes is used for each partition entry, then the **maximum number of partitions is limited to 128.**
+
+===== Legacy MBR (LBA 0) =====
+Traditionally, in IBM PC compatible systems the first sector of the disk holds the __Master Boot Record (MBR)__, containing the drive's partitioning information and the code of the **first stage boot loader for BIOS-based systems.** For limited backward compatibility, this sector is __still reserved for a MBR in the GPT specification__, but it is now used in a way that prevents MBR-based disk utilities from mis-recognizing, and possibly over-writing, GPT disks. This is referred to as a "protective MBR".
+
+GPT规范中保留LBA0的作用是用于MBR-based 的磁盘工具识别GPT分区表，同时避免覆盖GPT分区表(即使误操作，覆盖的也只是Protective MBR，而不是从第二个LBA开始的Primary GPT Header)
+
+A single partition type of __EEh__, encompassing the __entire__ GPT drive, is indicated and identifies it as GPT. 
+
+Operating systems and tools which cannot read GPT disks will generally recognize the disk as containing one partition of **unknown type** and no empty space, and will typically refuse to modify the disk unless the user explicitly requests and confirms the deletion of this partition. This minimizes accidental erasures. 
+
+Furthermore, GPT-aware OSes will __check the protective MBR__ and if the enclosed partition type is __not__ of type EEh or if there are multiple partitions defined on the target device, the device should not be manipulated[dubious – discuss].
+
+While the MBR layout (and also the protective MBR layout) was defined around a sector size of 512 bytes per sector, the __actual sector__ size can be larger on various media such as MO disks or __hard disks with Advanced Format__. Extra space in the MBR typically remains unused.
+If the actual size of the disk exceeds the maximum partition size representable using the legacy 32-bit LBA entries in the MBR partition table, the recorded size of this partition is clipped at the maximum, thereby ignoring the rest of disk. This amounts to a maximum reported size of 2 TiB, assuming a disk with 512 bytes per sector (see 512e). It would result in 16 TiB with 4 KB sectors (4Kn), but since many older operating systems and tools are hard-wired for a sector size of 512 bytes or are limited to 32-bit calculations, exceeding the 2 TiB limit would cause serious compatibility problems.
+
+In operating systems that support __GPT-based boot through BIOS services__ rather than UEFI, the first sector is also __still used to store the first stage of the bootloader code__, but modified to recognize GPT partitions. The boot loader in the MBR must not assume a fixed sector size of 512 bytes / sector.
+
+使用BIOS服务(而非UEFI)但是从GPT分区启动的操作系统，仍将其第一阶段的bootloader代码安装到硬盘的第一个扇区中。
+
+Apple's Boot Camp Intel based Apple macs software creates a hybrid partition table to allow the booting of Windows (which at the time of Boot Camp's creation did not support GPT or EFI). In this system the protective partition is reduced in size to cover from sector 1 to the sector before the first regular partition included in the hybrid MBR. Additional MBR partitions are then defined to correspond to the next three GPT[citation needed] partitions.
+
+===== Partition table header (LBA 1) [edit] =====
+The partition table header defines __the usable blocks__ on the disk. It also defines __the number and size of the partition entries__ that make up the partition table. On 64-bit Windows Server 2003 machines, __128 partitions__ can be created. There are 128 partition entries reserved, each 128 bytes long. (The EFI specification requires that a minimum of 16,384 bytes be reserved for the partition table, so if the minimum of 128 bytes is used for the partition table entry, this gives space for 128 partition entries.)
+
+The header contains the __disk globally unique identifier (GUID)__. It records its own size and location (always LBA 1) and the size and location of the secondary GPT header and table (always the last sectors on the disk). 
+
+Importantly, it also contains a **CRC32 checksum** for itself and for the partition table, which may be verified by the firmware, bootloader and/or operating system on boot. Because of this, hex editors should not be used to modify the contents of the GPT. Such modification would render the checksum invalid. In this case, the primary GPT may be __overwritten__ with the secondary one by disk recovery software. If both GPTs contain invalid checksums, the disk would be unusable.
+
+===== GPT header format =====
+Offset	Length	Contents
++0	8 bytes	Signature ("__EFI PART"__, 45h 46h 49h 20h 50h 41h 52h 54h)
++8	4 bytes	Revision (for GPT version 1.0 (through at least UEFI version 2.3.1), the value is 00h 00h 01h 00h)
++12	4 bytes	Header size in little endian (in bytes, usually 5Ch 00h 00h 00h meaning __92__ bytes)
++16	4 bytes	CRC32 of header (offset +0 up to header size), with this field zeroed during calculation
++20	4 bytes	Reserved; must be zero
++24	8 bytes	Current LBA (location of this header copy)
++32	8 bytes	Backup LBA (location of the other header copy)
++40	8 bytes	First usable LBA for partitions (primary partition table __last LBA__ + 1)
++48	8 bytes	Last usable LBA (secondary partition table first LBA - 1)
++56	16 bytes	__Disk GUID__ (also referred as UUID on UNIXes)
++72	8 bytes	__Starting LBA__ of array of **partition entries** (always 2 in primary copy)
++80	4 bytes	__Number of__ partition entries in array
++84	4 bytes	__Size of a single__ partition entry (usually 128)
++88	4 bytes	CRC32 of partition array
++92	*	Reserved; must be zeroes for the rest of the block (420 bytes for a sector size of 512 bytes; but can be more with larger sector sizes)
+LBA size	Total
+
+The values for __current and backup__ LBAs of the primary header should be the second sector of the disk (LBA 1) and the last sector of the disk, respectively. The secondary header at the end of the disk identifies its own table of partition entries, which is located directly before that header.
+
+This table mhust be referenced relative to LBA 1, that is, it should be __accessed through LBA 1__ rather than erroneously assuming that it directly follows the 512 bytes of the MBR (stored in LBA 0) and thereby could be assumed to become part of LBA 0 on 4Kn disks. While the described arrangement happens to occur on disks with 512 bytes per sector, there may be "gaps" of unused space between them on disks with larger sector sizes. If multi-sector reads are performed, the actual sector size must be included in the calculation when referencing this table.
+
+===== Partition entries [edit] =====
+The GPT uses simple and straightforward entries to describe partitions. The first 16 bytes designate the __partition type globally unique identifier (GUID).__ For example, the GUID for an EFI System partition is {C12A7328-F81F-11D2-BA4B-00A0C93EC93B}. The second 16 bytes contain __a GUID unique to the partition__. Starting and ending __64-bit LBAs__ are also recorded here, and space is allocated for partition names and attributes. As is the nature and purpose of GUIDs, no central registry is needed to ensure the uniqueness of the GUID partition type designators.
+
+===== GUID partition entry format =====
+Offset	Length	Contents
+0	16 bytes	Partition type GUID    **#分区类型GUID**
+16	16 bytes	Unique partition GUID   **#标示本分区的GUID**
+32	8 bytes	First LBA (little endian)   #分区的寻址可以是2^64 -1 个LBA。
+40	8 bytes	Last LBA (**inclusive**, usually odd)
+48	8 bytes	Attribute flags (e.g. bit 60 denotes read-only)
+56	72 bytes	__Partition name__ (36 UTF-16LE code units)
+128	Total
+
+The location of the partition entries array on disk is defined in the GPT header (but it starts at LBA 2 in many cases).
+GPT 的partition entried位置在GPT header中定义，所以其位置是可变的。
+
+The GPT header contains a field that specifies the size of a partition table entry. The minimum required is 128 bytes, but implementations must allow for other values (see this warning).
+
+Also, the sector size must not be assumed to be hard-wired to 512 bytes per sector in calculations (see Advanced Format), that is, there can be more than four partition entries in a single sector, and (with possible future much larger partition table entries) it is possible to have a sector hold only a fraction of a partition entry. Except for the first two sectors (LBA 0 and LBA 1), the GPT specification just describes the size and organization of a data structure, not in how many sectors it is stored on disk.
+
+Microsoft further subdivides the attribute flags according to this TechNet article: the lower 4 bytes representing partition type independent attributes, and the upper 4 bytes are partition type dependent. Microsoft uses the following bits in general:
+
+===== Partition attributes =====
+Bit	Content
+0	System partition (disk partitioning utilities must preserve the partition as is)
+2	Legacy BIOS bootable (equivalent to active flag (typically bit 7 set) at offset +0h in partition entries of the MBR partition table)[6]
+60	Read-only
+62	Hidden
+63	Do not automount (i.e., do not assign drive letter)
+
+===== Operating System support of GPT [edit] =====
+Hybrid MBRs are non-standard and can be interpreted in different ways by different OSes.[7] Unless otherwise noted, __OS__es provide precedence（优先权） to the GPT data when a hybrid MBR configuration is encountered.
+
+The term __No native support on this arch and version.__ should be understood this way:
+Not supported as **data disk**,[8] only known **legacy partitions** found in protective MBR(过时的，采用MBR分区表的系统) are accessible **via the OS**. Detachable disks（可拆卸磁盘）: only support for MBR partitioning; No access with end user applications. GPT contained raw data is accessible with third-party administrator tools for low level disk access. True file system level support in read or read-write form might be subject of software from a third-party vendor.
+
+===== Unix-class operating systems [edit] =====
+{{./Unix系统对GPT分区表的支持情况}}
+
+{{./Windows系统对GPT分区表的支持情况}}
+
+===== Partition type GUIDs [edit] =====
+
+Assoc. OS	Partition type	Globally unique identifier (GUID)[A]
+(None)		Unused entry	00000000-0000-0000-0000-000000000000
+			MBR partition scheme	024DEE41-33E7-11D3-9D69-0008C781F39F
+			EFI System partition	C12A7328-F81F-11D2-BA4B-00A0C93EC93B
+			BIOS Boot partition[B]	21686148-6449-6E6F-744E-656564454649
+			Intel Fast Flash (iFFS) partition (for Intel Rapid Start technology)[16][17]	D3BFE2DE-3DAF-11DF-BA40-E3A556D89593
+Windows		Microsoft Reserved Partition	E3C9E316-0B5C-4DB8-817D-F92DF00215AE
+			__Basic data partition__[C]	EBD0A0A2-B9E5-4433-87C0-68B6B72699C7
+			Logical Disk Manager (LDM) metadata partition	5808C8AA-7E8F-42E0-85D2-E1E90434CFB3
+			Logical Disk Manager data partition	AF9B60A0-1431-4F62-BC68-3311714A69AD
+			Windows Recovery Environment	DE94BBA4-06D1-4D40-A16A-BFD50179D6AC
+IBM 			General Parallel File System (GPFS) partition	37AFFC90-EF7D-4E96-91C3-2D7AE055B174
+HP-UX		Data partition	75894C1E-3AEB-11D3-B7C1-7B03A0000000
+			Service Partition	E2A1E728-32E3-11D6-A682-7B03A0000000
+__Linux__		__Linux filesystem data__[C]	0FC63DAF-8483-4772-8E79-3D69D8477DE4
+			__RAID partition__	A19D880F-05FC-4D3B-A006-743F0F84911E
+			__Swap partition__	0657FD6D-A4AB-43C4-84E5-0933C84B4F4F
+			Logical Volume Manager __(LVM) partition__	E6D6D379-F507-44C2-A23C-238F2A3DF928
+			Reserved	8DA63339-0007-60C0-C436-083AC8230908
+FreeBSD		Boot partition	83BD6B9D-7F41-11DC-BE0B-001560B84F0F
+			Data partition	516E7CB4-6ECF-11D6-8FF8-00022D09712B
+			Swap partition	516E7CB5-6ECF-11D6-8FF8-00022D09712B
+			Unix File System (UFS) partition	516E7CB6-6ECF-11D6-8FF8-00022D09712B
+			Vinum volume manager partition	516E7CB8-6ECF-11D6-8FF8-00022D09712B
+			ZFS partition	516E7CBA-6ECF-11D6-8FF8-00022D09712B
+Mac OS X	Hierarchical File System Plus (HFS+) partition	48465300-0000-11AA-AA11-00306543ECAC
+			Apple UFS	55465300-0000-11AA-AA11-00306543ECAC
+			ZFS[D]	6A898CC3-1DD2-11B2-99A6-080020736631
+			Apple RAID partition	52414944-0000-11AA-AA11-00306543ECAC
+			Apple RAID partition, offline	52414944-5F4F-11AA-AA11-00306543ECAC
+			Apple Boot partition	426F6F74-0000-11AA-AA11-00306543ECAC
+			Apple Label	4C616265-6C00-11AA-AA11-00306543ECAC
+			Apple TV Recovery partition	5265636F-7665-11AA-AA11-00306543ECAC
+			Apple Core Storage (i.e. Lion FileVault) partition	53746F72-6167-11AA-AA11-00306543ECAC
+Solaris		Boot partition	6A82CB45-1DD2-11B2-99A6-080020736631
+			Root partition	6A85CF4D-1DD2-11B2-99A6-080020736631
+			Swap partition	6A87C46F-1DD2-11B2-99A6-080020736631
+			Backup partition	6A8B642B-1DD2-11B2-99A6-080020736631
+			/usr partition[D]	6A898CC3-1DD2-11B2-99A6-080020736631
+			/var partition	6A8EF2E9-1DD2-11B2-99A6-080020736631
+			/home partition	6A90BA39-1DD2-11B2-99A6-080020736631
+			Alternate sector	6A9283A5-1DD2-11B2-99A6-080020736631
+			Reserved partition	6A945A3B-1DD2-11B2-99A6-080020736631
+			6A9630D1-1DD2-11B2-99A6-080020736631
+			6A980767-1DD2-11B2-99A6-080020736631
+			6A96237F-1DD2-11B2-99A6-080020736631
+			6A8D2AC7-1DD2-11B2-99A6-080020736631
+NetBSD[E][18]	Swap partition	49F48D32-B10E-11DC-B99B-0019D1879648
+			FFS partition	49F48D5A-B10E-11DC-B99B-0019D1879648
+			LFS partition	49F48D82-B10E-11DC-B99B-0019D1879648
+			RAID partition	49F48DAA-B10E-11DC-B99B-0019D1879648
+			Concatenated partition	2DB519C4-B10F-11DC-B99B-0019D1879648
+			Encrypted partition	2DB519EC-B10F-11DC-B99B-0019D1879648
+ChromeOS[19]	ChromeOS kernel	FE3A2A5D-4F32-41A7-B725-ACCC3285A309
+			ChromeOS rootfs	3CB8E202-3B7E-47DD-8A3C-7FF2A13CFCEC
+			ChromeOS future use	2E0A753D-9E48-43B0-8337-B15192CB1B5E
+			Haiku[20]	Haiku BFS	42465331-3BA3-10F1-802A-4861696B7521
+MidnightBSD[E][21]	Boot partition	85D5E45E-237C-11E1-B4B3-E89A8F7FC3A7
+			Data partition	85D5E45A-237C-11E1-B4B3-E89A8F7FC3A7
+			Swap partition	85D5E45B-237C-11E1-B4B3-E89A8F7FC3A7
+			Unix File System (UFS) partition	0394EF8B-237E-11E1-B4B3-E89A8F7FC3A7
+			Vinum volume manager partition	85D5E45C-237C-11E1-B4B3-E89A8F7FC3A7
+			ZFS partition	85D5E45D-237C-11E1-B4B3-E89A8F7FC3A7
+A. ^ The GUIDs in this table are written assuming **a little-endian byte order.** For example, the GUID for an EFI System partition is written as {C12A7328-F81F-11D2-BA4B-00A0C93EC93B} here, which corresponds to the 16 byte sequence 28h 73h 2Ah C1h 1Fh F8h D2h 11h BAh 4Bh 00h A0h C9h 3Eh C9h 3Bh — only the first three blocks are byte-swapped.
+B. ^ The formation of this GUID does not follow the GUID definition; it is formed by using the ASCII codes for the string "Hah!IdontNeedEFI". Such formation of "GUID" value breaks down the guaranteed uniqueness of GUID.
+C. a b __Previously Linux used the same GUID for the data partitions as Windows__ (__Basic data partition__: {EBD0A0A2-B9E5-4433-87C0-68B6B72699C7}). Linux never had a separate unique partition type GUID defined for its data partitions. This created problems when dual-booting Linux and Windows in UEFI-GPT setup. The new GUID (Linux filesystem data: {0FC63DAF-8483-4772-8E79-3D69D8477DE4}) was defined jointly by **GPT fdisk and GNU Parted** developers. It is identified as type code 0x8300 in GPT fdisk. (See definitions in gdisk's parttypes.cc)
+D. a b The GUID for /usr on Solaris is used as a generic GUID for ZFS by Mac OS X.
+E. a b NetBSD and MidnightBSD had used the FreeBSD GUIDs before their unique GUIDs were created.

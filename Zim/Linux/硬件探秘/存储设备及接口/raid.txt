@@ -1,7 +1,0 @@
-Content-Type: text/x-zim-wiki
-Wiki-Format: zim 0.4
-Creation-Date: 2013-05-30T20:42:46+08:00
-
-====== raid ======
-Created Thursday 30 May 2013
-

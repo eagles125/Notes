@@ -1,0 +1,144 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2013-05-31T16:44:39+08:00
+
+====== parted(gpt分区表) ======
+Created Friday 31 May 2013
+
+parted是GNU开发的用于磁盘分区的工具，它支持常用的MSDOS、SUN和GPT分区表。而fdisk系列工具目前还不支持GPT分区表。
+
+由于是对disk driver进行分区，所以它的参数必须是硬盘设备而不是其中的某个分区。
+
+**[geekard@geekard ~]$ sudo parted /dev/sda   #系统硬盘**
+[sudo] password for geekard: 
+GNU Parted 3.1
+Using /dev/sda
+Welcome to GNU Parted! Type 'help' to view a list of commands.
+(parted) print
+Model: **ATA ST320LT020-9YG14 (scsi)     #检测出了硬盘接口和控制器型号。(ATA接口的硬盘其控制器和介质做在一起)**
+Disk /dev/sda: 320GB    **#磁盘容量**
+Sector size (logical/physical): 512B/4096B  **#逻辑和物理扇区大小，注意，该硬盘的物理扇区为4KB，这样分区边界要是4KB的倍数，否则会出现警告。**
+Partition Table: msdos    **#分区表类型**
+Disk Flags: 
+
+Number  Start   End     Size    Type     File system     Flags
+ 1      32.3kB  60.0GB  60.0GB  primary  ext4            boot
+ 2      60.0GB  62.0GB  1999MB  primary  linux-swap(v1)
+ 3      62.0GB  162GB   100GB   primary  ext4
+
+(parted) 
+
+[geekard@geekard ~]$ sudo parted [[/dev/sdb]]   #U盘
+[sudo] password for geekard: 
+GNU Parted 3.1
+Using /dev/sdb
+Welcome to GNU Parted! Type 'help' to view a list of commands.
+**(parted) print   #查看选中的磁盘分区表和磁盘信息**
+Model:   (scsi)     **#磁盘控制器厂商型号**
+Disk /dev/sdb: 7927MB   **#磁盘容量**
+Sector size (logical/physical): 512B/512B   **#磁盘的逻辑扇区和物理扇区大小**
+Partition Table: gpt   **#分区表类型**
+Disk Flags: pmbr_boot  **#磁盘标志**
+
+Number  	Start   	End     	Size   	File system  	Name  	Flags
+ 1      	1049kB  	1000MB  	999MB               		ff
+ 2      	1000MB  	2000MB  	999MB               		ffff
+
+**(parted) help     #打印parted使用帮助**
+  align-check TYPE N                        check partition N for TYPE(min|opt)   alignment
+  help [COMMAND]                           print general help, or help on   COMMAND
+  mklabel,mktable LABEL-TYPE               create a new disklabel (partition table)
+  mkpart PART-TYPE [FS-TYPE] START END     make a partition
+  name NUMBER NAME                         name partition NUMBER as NAME
+  print [devices|free|list,all|NUMBER]     display the partition table,  available devices, free space, all found partitions, or a particular        								      partition
+  quit                                     exit program
+  rescue START END                         rescue a lost partition near START  and END
+  rm NUMBER                                delete partition NUMBER
+  select DEVICE                            choose the device to edit
+  disk_set FLAG STATE                      change the FLAG on selected device
+  disk_toggle [FLAG]                       toggle the state of FLAG on selected device
+  set NUMBER FLAG STATE                    change the FLAG on partition NUMBER
+  toggle [NUMBER [FLAG]]                   toggle the state of FLAG on partition  NUMBER
+  unit UNIT                                set the default unit to UNIT
+  version                                  display the version number and  copyright information of GNU Parted
+(parted) 
+mklabel和mktable是用来创建分区表的，可用的分区表类型可以使用help mklabel或mktable命令查看，如：
+(parted) help mklabel
+  mklabel,mktable LABEL-TYPE               create a new disklabel (partition
+        table)
+
+	LABEL-TYPE is one of: aix, amiga, bsd, dvh, __gpt__, mac, __msdos__, pc98, sun,
+        loop
+(parted) 
+注意，mklabel只是建立了一个新的分区表类型，以前分区中的数据并没有丢失，但是它们在执行mklabel后不能访问了，可以使用rescue命令来恢复丢失
+的分区。
+(parted) mklabel gpt
+Warning: The existing disk label on /dev/sdb will be destroyed and all data on
+this disk will be lost. Do you want to continue?
+Yes/No? Y
+(parted) print
+Model:   (scsi)
+Disk /dev/sdb: 7927MB
+Sector size (logical/physical): 512B/512B
+Partition Table: __gpt__
+Disk Flags: 
+
+Number  Start  End  Size  File system  Name  Flags
+
+(parted) 
+创建分区，可以使用mkpart命令，它的语法为：mkpart [PART-TYPE FS-TYPE name ] start end（来源于info parted）
+FS-TYPE指定了分区表中该分区的__partition code(id)__，但是parted并不真正格式化该分区以创建指定的文件系统，如果创建的分区是数据分区(例如，非扩展分区)，则__一般__需要指定fs-type。~~注意，在使用mkfs命令格式化分区时，它并不修改分区表中的partition code，所以，parted指定的FS-TYPE一定要与稍后格式化的文件系统一致，否则grub等程序可能会出错。~~ 对于msdos分区表，PART-TYPE时必须要指定的。对于gpt分区表，name必须指定。
+(parted) help mkpart
+  mkpart PART-TYPE [FS-TYPE] START END     make a partition    __#注意，程序输出的语法格式不太正确，应以info parted中的为准。__
+
+	PART-TYPE is one of: primary, logical, extended
+        FS-TYPE is one of: nilfs2, ext4, ext3, ext2, fat32, fat16, hfsx, hfs+,
+        hfs, jfs, swsusp, linux-swap(v1), linux-swap(v0), ntfs, reiserfs,
+        hp-ufs, sun-ufs, xfs, apfs2, apfs1, asfs, amufs5, amufs4, amufs3,
+        amufs2, amufs1, amufs0, amufs, affs7, affs6, affs5, affs4, affs3, affs2,
+        affs1, affs0, linux-swap, linux-swap(new), linux-swap(old)
+        START and END are disk locations, such as 4GB or 10%.  Negative values
+        count from the end of the disk.  For example, -1s specifies exactly the
+        last sector.
+        
+        'mkpart' makes a partition __without__ creating a new file system on the
+        partition.  FS-TYPE may be specified to set an appropriate __partition ID__.
+**(parted) mkpart part1 1MiB 1GiB   #part1为分区的name，对于gpt分区表类型而言时必须参数。**
+(parted) print
+Model:   (scsi)
+Disk /dev/sdb: 7927MB
+Sector size (logical/physical): 512B/512B
+Partition Table: gpt
+Disk Flags: 
+
+Number  Start   End     Size    File system  Name  Flags
+ 1      1049kB  1074MB  1073MB                                      #并没有出现分区的name，可以使用name命令来指定。
+如果在执行mkpart时出现：
+Warning: The resulting partition is not properly aligned for best performance.
+Ignoge/Cancel?
+的警告，则说明指定的分区边界值没有与physical sector size对齐，例如上面/dev/sda的4096B，/dev/sdb的512B。对于hardware raid中的磁盘而言，分区的边界必须是raid的__n*stripe__值。解决方法是利用unit命令，设置默认的单位。也可以使用KiB, MiB, GiB单位。(KB。。以1000为底，KiB以1024为底)
+**(parted) disk_set   #设置磁盘标志(flag)为on或off，对于gpt分区表而言**__只有一个pmbr_boot标志__**。disk_toggle命令的功能是反向磁盘标志。**
+Flag to Invert?  [pmbr_boot]? 
+New state?  [on]/off? on
+(parted) disk_set pmbr_boot off
+(parted) (parted) disk_set pmbr_boot on
+(parted) print 
+Model:   (scsi)
+Disk /dev/sdb: 7927MB
+Sector size (logical/physical): 512B/512B
+Partition Table: gpt
+Disk Flags: __pmbr_boot__
+
+Number  Start   End     Size    File system  Name  Flags
+ 1      1049kB  1074MB  1073MB  ext3
+
+**(parted) help set   #设置分区表中该分区的标志，注意这与分区表中的partition code（id）是不同的。重要的是lvm、raid、hidden、bios_grub等类型。toggle的功能时反向该分区的某个标志。GPT has reserved GUID for different partitions e.g LVM= E6D6D379-F507-44C2-A23C-238F2A3DF928**
+  set NUMBER FLAG STATE                    change the FLAG on partition NUMBER
+
+	NUMBER is the partition number used by Linux.  On MS-DOS disk labels,
+        the primary partitions number from 1 to 4, logical partitions from 5
+        onwards.
+        FLAG is one of: boot, root, swap, **hidden, raid, lvm**, lba, hp-service,
+        palo, prep, msftres, **bios_grub**, atvrecv, diag, legacy_boot
+        STATE is one of: on, off
+(parted) 
