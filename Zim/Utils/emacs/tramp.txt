@@ -6,6 +6,12 @@ Creation-Date: 2011-04-08T17:08:38+08:00
 Created Friday 08 April 2011
 Contents
 
+[[/host:filename]]
+[[/user@host:filename]]
+[[/user@host@port:filename]]
+[[/method:user@host:filename]]
+/method:user@host#port:filename
+
 什么是 TRAMP
 安装 TRAMP
 
@@ -197,3 +203,4 @@ TRAMP 已经试验着实现远程启动进程的机制。例如，你可以在�
 Footnote
 
 1. 我在实验的时候发现并不是这样，虽然我指定了 backup-directory-alist ，普通文件的备份是都跑到那儿去了，可是通过 TRAMP 编辑的文件还是在原来的文件那个目录下面的。
+

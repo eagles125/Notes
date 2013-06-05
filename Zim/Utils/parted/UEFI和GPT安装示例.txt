@@ -1,0 +1,342 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2013-06-03T10:49:08+08:00
+
+====== UEFI和GPT安装示例 ======
+Created Monday 03 June 2013
+http://www.thinkwiki.org/wiki/Installing_Gentoo_on_a_ThinkPad_X220
+
+Installing Gentoo on a ThinkPad X220
+Contents [hide] 
+1 Installing Gentoo on a Lenovo X220 with UEFI and GPT
+1.1 Model specs
+1.1.1 General specs
+1.1.2 cpuinfo
+1.1.3 lspci
+1.1.4 lsusb
+1.1.5 Required kernel modules for the X220 hardware
+1.2 BIOS update
+1.3 Boot from USB stick
+1.3.1 Partition the drive
+1.3.2 Format the partitions
+1.4 Gentoo installation
+1.4.1 Gentoo stage3
+1.4.2 Grub with EFI support installation
+1.4.2.1 Minimal grub.cfg
+1.4.2.1.1 Optimized grub.cfg
+1.4.3 Kernel
+1.4.3.1 Kernel configuration remarks
+1.4.4 make.conf
+1.4.5 Finishing touches
+1.4.5.1 Set timezone
+1.4.6 Locale
+1.5 Hardware setup
+1.5.1 WLAN Intel Advanced 6205
+2 Further installation steps
+2.1 Emerging the system
+2.1.1 xorg
+2.1.1.1 DPI
+2.1.1.2 KMS
+2.1.2 GNOME and GDM
+2.1.3 NetworkManager
+2.2 Ecryptfs home
+2.3 Fingerprint reader
+2.3.1 Working Fingerprint reader
+2.4 Extra keys
+2.4.1 Functional
+2.4.2 Functional with some limitations
+3 Notes
+3.1 ThinkLight
+Installing Gentoo on a Lenovo X220 with UEFI and GPT
+
+The goal is a working Gentoo installation utilizing UEFI and GPT on an SSD. I work on improving the page step-by-step, but at the moment it's more or less for the advanced gentoo user. Anyways, you can always ask me for clarification. :)
+Model specs
+
+General specs
+X220 - 4290-W1B, i5-2520M, 4GB RAM
+Replaced internal HDD with SSD Intel 320 Series 120GB, 2.5", SATA II (SSDSA2CW120G310). It's a SSD with 7.5mm height, so it fits nicely in the X220. 2.5" 9mm SSDs fit too, but you have to remove parts of the SSDs case.
+ATTENTION!
+Some Intel 320 Series SSDs are affected by a firmware bug
+ATTENTION!
+The mSATA Intel 310 Serices SSD requires UEFI BIOS 1.19 (proved with X220 4290-W4H)
+cpuinfo
+processor       : 0
+vendor_id       : GenuineIntel
+cpu family      : 6
+model           : 42
+model name      : Intel® Core™ i5-2520M CPU 2.50GHz
+stepping        : 7
+cpu MHz         : 2501.000
+cache size      : 3072 KiB
+physical id     : 0
+siblings        : 4
+core id         : 0
+cpu cores       : 2
+apicid          : 0
+initial apicid  : 0
+fpu             : yes
+fpu_exception   : yes
+cpuid level     : 13
+wp              : yes
+flags           : fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx rdtscp lm constant_tsc arch_perfmon pebs bts nopl xtopology nonstop_tsc aperfmperf pni pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2 ssse3 cx16 xtpr pdcm sse4_1 sse4_2 x2apic popcnt aes xsave avx lahf_lm ida arat epb xsaveopt pln pts dts tpr_shadow vnmi flexpriority ept vpid
+bogomips        : 4983.17
+clflush size    : 64
+cache_alignment : 64
+address sizes   : 36 bits physical, 48 bits virtual
+power management:
+lspci
+00:00.0 Host bridge: Intel Corporation 2nd Generation Core Processor Family DRAM Controller (rev 09)
+00:02.0 VGA compatible controller: Intel Corporation 2nd Generation Core Processor Family Integrated Graphics Controller (rev 09)
+00:16.0 Communication controller: Intel Corporation 6 Series/C200 Series Chipset Family HECI Controller #1 (rev 04)
+00:16.3 Serial controller: Intel Corporation 6 Series/C200 Series Chipset Family KT Controller (rev 04)
+00:19.0 Ethernet controller: Intel Corporation 82579LM Gigabit Network Connection (rev 04)
+00:1a.0 USB Controller: Intel Corporation 6 Series/C200 Series Chipset Family USB Enhanced Host Controller #2 (rev 04)
+00:1b.0 Audio device: Intel Corporation 6 Series/C200 Series Chipset Family High Definition Audio Controller (rev 04)
+00:1c.0 PCI bridge: Intel Corporation 6 Series/C200 Series Chipset Family PCI Express Root Port 1 (rev b4)
+00:1c.1 PCI bridge: Intel Corporation 6 Series/C200 Series Chipset Family PCI Express Root Port 2 (rev b4)
+00:1c.3 PCI bridge: Intel Corporation 6 Series/C200 Series Chipset Family PCI Express Root Port 4 (rev b4)
+00:1c.4 PCI bridge: Intel Corporation 6 Series/C200 Series Chipset Family PCI Express Root Port 5 (rev b4)
+00:1d.0 USB Controller: Intel Corporation 6 Series/C200 Series Chipset Family USB Enhanced Host Controller #1 (rev 04)
+00:1f.0 ISA bridge: Intel Corporation QM67 Express Chipset Family LPC Controller (rev 04)
+00:1f.2 SATA controller: Intel Corporation 6 Series/C200 Series Chipset Family 6 port SATA AHCI Controller (rev 04)
+00:1f.3 SMBus: Intel Corporation 6 Series/C200 Series Chipset Family SMBus Controller (rev 04)
+03:00.0 Network controller: Intel Corporation Centrino Advanced-N 6205 (rev 34)
+0d:00.0 System peripheral: Ricoh Co Ltd Device e823 (rev 04)
+lsusb
+Bus 001 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub
+Bus 002 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub
+Bus 001 Device 002: ID 8087:0024 Intel Corp. Integrated Rate Matching Hub
+Bus 002 Device 002: ID 8087:0024 Intel Corp. Integrated Rate Matching Hub
+Bus 001 Device 003: ID 147e:2016 Upek Biometric Touchchip/Touchstrip Fingerprint Sensor
+Bus 001 Device 004: ID 04f2:b217 Chicony Electronics Co., Ltd 
+Required kernel modules for the X220 hardware
+Intel Gigabit Ethernet: (CONFIG_E1000EI)
+Intel WLAN: (CONFIG_IWLAGNI)
+Intel HD Graphic: (CONFIG_DRM_I915I)
+TPM Chip (CONFIG_TCG_TIS)
+There are still no correct settings for MTRR: Link
+BIOS update
+
+ATTENTION!
+Always use an up-to-date BIOS version. Old versions are known to cause problems with shutdown and wakeup after suspend-to-RAM.
+1. Get the bios update iso (8duj10uc.iso here﻿) from the lenovo support site.
+2. Get 'geteltorito' and extract the boot image from the iso (isobar.c probably works too)
+$ wget '﻿﻿http://www.uni-koblenz.de/~krienke/ftp/noarch/geteltorito/geteltorito.pl﻿'
+$ perl geteltorito.pl ﻿﻿8duj10uc.iso > biosupdate.img
+3. Copy the image to the usb thumdrive
+# ddrescue biosupdate.img /dev/usbthumdrive
+Reboot, Press F12 and boot from thumb drive.
+The latest BIOS for the X220 can be found here.
+Boot from USB stick
+
+Sysresccd (2.2.0), which has a pretty nice script to create a bootable USB-Stick, failed to boot on the X220. Created an bootable usb stick from the gentoo-minimal.iso with unetbootin. Works.
+Partition the drive
+# parted
+(parted) mklabel gpt
+NOTE!
+X220s will not boot GPT partitioned drives using Legacy BIOS, so you will have to setup UEFI if you use GPT.
+(parted) mkpart primary fat32 1 201
+NOTE!
+We don't start with sector 0 because of alignment. I am not sure if the result is optimal, but at least parted doesn't complain
+(parted) set 1 boot on
+(parted) mkpart primary linux-swap 202 4047
+(parted) mkpart pimrary ext2 4048 120GB
+Format the partitions
+# mkfs.vfat /dev/sda1
+# mkswap /dev/sda2
+# mkfs.btrfs /dev/sda3
+NOTE!
+The mkfs.btrfs binary is not yet on the gentoo minimal image.
+Gentoo installation
+
+Gentoo stage3
+Just like the handbook:
+Boot from gentoo-minimal-image.
+Unpack stage3 and portage.
+Edit fstab
+/etc/fstab
+/dev/sda1		/boot/efi	vfat		noauto		1 2
+/dev/sda3		/		btrfs		noatime		0 1
+/dev/sda2		none		swap		sw		0 0
+If you have a SSD, you should use Trim (discard)
+/etc/fstab
+/dev/sda1		/boot/efi	vfat		noauto		1 2
+/dev/sda3		/		btrfs		noatime,discard	0 1
+/dev/sda2		none		swap		sw		0 0
+Set a root password.
+Everything else can be done later on.
+Grub with EFI support installation
+This was by far the hardest part yet. Because UEFI and GPT a relatively new and I am not so familiar with it and the documentation isn't so good yet. Basically EFI on the X220 looks for a FAT32 formatted GPT partition with the boot flag set. If it finds one it tries to start /EFI/boot/bootx64.efi from this partition. (Note that this is actually case-insensitive because of FAT32).
+A grub-1.99 ebuild is needed. Unfortunately the one from the scarabeus is broken. You could fix the STRIP_MASK error by removing the last "a". Or you use the fixed ebuild from my overlay.
+# layman -a flow
+Enable GRUB_PLATFORMS=efi-64 in make.conf or if you don't see the effect enable the GRUB_PLATFORM as USE flag.
+# USE="grub_platforms_efi-64" emerge -v =sys-boot/grub-1.99
+Create a mountpoint for the UEFI partition and mount the partition.
+# mkdir /boot/efi
+# mount /dev/sda1 /boot/efi
+# mkdir /boot/efi/efi/grub -p
+Help needed
+I don't think that this is needed, it's from the Arch Wiki on UEFI boot. Maybe outdated, please report if it works without for you or simply delete this part.
+# cp /usr/share/grub/{unicode.pf2,ascii.pf2} /boot/efi/efi/grub/
+Important part:
+NOTE!
+The efi_gop grub module is very important. If it's not loaded, you won't see anything on boot after grub
+# grub2-mkimage -d /lib/grub/x86_64-efi -O x86_64-efi -p "" -o /boot/efi/efi/boot/bootx64.efi part_gpt btrfs fat ext2 normal chain boot configfile linux multiboot efi_gop linux
+Optional but useful:
+# cp /lib/grub/x86_64-efi/*.mod /boot/efi/efi/boot/
+# cp /lib/grub/x86_64-efi/*.lst /boot/efi/efi/boot/
+Minimal grub.cfg
+set prefix(hd0,gpt1)/efi/boot
+pager=1
+timeout=20
+
+menuentry "Gentoo Linux" {
+        set root=(hd0,gpt3)
+        linux /boot/bzImage root=/dev/sda3 ro raid=noautodetect
+}
+Put grub.cfg in same directory as bootx64.efi: /boot/efi/efi/boot/
+Thanks to Finnbarr P. Murphy for his blog posts about Grub and UEFI.
+Optimized grub.cfg
+Use 'threadirqs' with kernel > 3.0.0 and because PCIE_ASPM is not detected correct (and you may want longer battery life) you should use 'pcie_aspm=force'.
+set prefix(hd0,gpt1)/efi/boot
+pager=1
+timeout=3
+
+menuentry "Gentoo Linux" {
+        set root=(hd0,gpt3)
+        linux /boot/bzImage root=/dev/sda3 ro fastboot splash=silent quiet threadirqs pcie_aspm=force i915.i915_enable_rc6=1 i915.i915_enable_fbc=1 i915.lvds_downclock=1 rootfstype=ext4
+}
+According to following links (threads), you should set i915.i915_enable_rc6=1, i915.i915_enable_fbc=1 and i915.lvds_downclock=1 for less power consumption (used kernel: 3.1.0rc3).
+Link Forum Notebookreview
+Link Ubuntu Launchpad Bugs
+Link Archlinux BBS
+Link Phoronix Tweaks To Extend The Battery Life Of Intel Linux Notebooks
+RedHat Bugzilla
+Kernel
+For UEFI on the X220 you have to use a kernel > 3.0-rc1. Suspend-to-RAM and brightness control of the display work with kernel >= 3.0-rc6.
+My current Kernel .config (3.0-rc6). Please feel free to comment if you have spotted an unnecessary enabled hardware option or something that should be enabled on the X220. The config is hosted as github gist, so you can easily ask for merges with your version. This is work in progress :)
+Kernel configuration remarks
+Use the deadline I/0 scheduler when you have an SSD. If you don't have an SSD, use the CFQ scheduler.
+make.conf
+/etc/make.conf
+CFLAGS="-march=core2 -O3 -pipe"
+CXXFLAGS="${CFLAGS}"
+CHOST="x86_64-pc-linux-gnu"
+MAKEOPTS="-j5 -l5"
+GRUB_PLATFORMS="efi-64"
+INPUT_DEVICES="evdev synaptics"
+VIDEO_CARDS="intel vesa fbdev"
+With gcc > 4.2:
+/etc/make.conf
+CFLAGS="-march=native -O3 -pipe"
+CXXFLAGS="${CFLAGS}"
+CHOST="x86_64-pc-linux-gnu"
+MAKEOPTS="-j5 -l5"
+GRUB_PLATFORMS="efi-64"
+INPUT_DEVICES="evdev synaptics"
+VIDEO_CARDS="intel vesa fbdev"
+Finishing touches
+Set timezone
+# cp /usr/share/zoneinfo/Europe/Berlin /etc/localtime
+Locale
+# nano /etc/locale.gen # locale-gen
+Set LANG in /etc/env.d/90locale
+LANG=en_US.utf8
+LC_TIME=de_DE.utf8
+LC_COLLATE=de_DE.utf8
+LC_MONETARY=de_DE.utf8
+LC_NUMERIC=de_DE.utf8
+Read more here: Gentoo Linux Localization Guide
+Hardware setup
+
+WLAN Intel Advanced 6205
+# emerge wpa_supplicant linux-firmware
+NOTE!
+You will see a lot of "DMAR:[DMA Write] Request device [03:00.0] fault addr XXXXXXXX" errors in syslog, caused by the WLAN module/firmware. But the device seems to work just fine
+Further installation steps
+
+Emerging the system
+
+xorg
+# emerge xorg-x11 The touchpad can be accessed by the evdev and the synaptics driver, which can lead to X11 not starting. To fix this add the following lines to /usr/share/X11/xorg.conf.d/50-synaptics.conf.
+     MatchDevicePath "/dev/input/event*"
+            Option "TapButton1" "1"
+            Option "TapButton2" "2"
+            Option "TapButton3" "3"
+DPI
+$ xdpyinfo gets the displays dimensions wrong, while $ xrandr shows the correct screen size (277x156mm). Although it seems to make no big difference (yet), you could specify the displays dimensions/DPI via one of these two methods manually:
+Via an xorg.conf:
+/usr/share/X11/xorg.conf.d/10-monitor.conf
+Section "Monitor"
+    Identifier "<default monitor>"
+#    Option   "DPI" "125 x 125"
+    DisplaySize 277 156    # In millimeters
+EndSection
+But this doesn't fix the xdpyinfo either (at least in my case).
+Via xrandr
+$ xrandr --dpi 125
+KMS
+One quick word about Kernel mode-setting (KMS) which comes with Linux 3.0. The i915 driver seems to support it flawlessly and it's really impressing how fast the switch console <-> x11 is done now.
+GNOME and GDM
+# emerge gnome
+ATTENTION!
+nss failes to emerge on systems with a 3.0 kernel. See Gentoo Bug 372001
+Bug 372001 workaround from here allows you to emerge nss.
+# emerge gdm
+NetworkManager
+Emerge a newer version of NetworkManager which comes with a built-in gentoo module. You can read more about the module on Mu Qioa's Blog
+# emerge =net-misc/networkmanager-0.8.2-r10 --autounmask-write
+# rc-update add NetworkManager default
+Make sure that the ifnet module (gentoo interface handling) is enabled: /etc/NetworkManager/nm-system-settings.conf
+[main]
+plugins=ifnet,keyfile
+[ifnet]
+managed=true
+auto_refresh=false
+Ecryptfs home
+
+I have setup an ecryptfs home for my user account and written an how-to about it in the gentoo-wiki. Read it here
+Fingerprint reader
+
+While I don't use the fingerprint reader for auth purposes (It's just insecure). It would be nice to scan some fingers for fun :-). Unfortunately there is a bug in libfprint that fails every enroll with "Enroll failed with error -22". Hopefully it will be fixed soon.
+# emerge fprint_demo
+Working Fingerprint reader
+If you'd like to use the fingerprint sensors, just emerge following:
+# emerge sys-auth/fprintd
+Afterwards edit following:
+/etc/pam.d/system-auth
+...
+auth       sufficient   pam_fprintd.so
+...
+Enroll your finger :-)
+# fprintd-enroll
+Extra keys
+
+Another overview can be found here
+Functional
+Most keys work out of the box. Tested so far are:
+FnF2 lock screen
+FnF3 display battery status
+FnF4 suspend to RAM
+FnF5 enable/disable WLAN (Note that there is also a hardware switch on the left side of the X220 which disabled WLAN and bluetooth
+FnEnd and FnPos 1 brightness controll
+Volume up/down/mute incl. sound mute indicator LED
+ThinkVantage, emits XF86Launch1
+FnF8 - disable/enable touchpad
+From ArchWiki: Add the following file and make it executable. Then set the file to be executed when XF86TouchpadOn is pressed via System -> Preferences -> Keyboard Shortcuts.
+/usr/bin/touchpad-toogle
+#!/bin/bash
+
+if [ $(synclient -l | grep TouchpadOff | gawk -F '= ' '{ print $2 }') -eq 0 ]; then
+    synclient TouchpadOff=1
+else
+    synclient TouchpadOff=0
+fi
+Functional with some limitations
+MicMute emits keycode 248. There is currently some lack of support for this feature. Also the LED is not controllable yet. See these two bugs
+Notes
+
+ThinkLight
+
+Can be enabled and disabled with the hardware button and the /sys interface. More information can be found on ThinkLight
+Categories: GentooX220

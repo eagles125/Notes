@@ -1,0 +1,89 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2013-06-03T10:50:47+08:00
+
+====== GPT fdisk Tutorial ======
+Created Monday 03 June 2013
+http://www.rodsbooks.com/gdisk/
+
+GPT fdisk Tutorial
+
+by Rod Smith, rodsmith@rodsbooks.com
+
+Last Web page update: 1/9/2013, referencing GPT fdisk version 0.8.6
+
+I'm a technical writer and consultant specializing in Linux technologies. This Web page, and the associated software, is provided free of charge and with no annoying outside ads; however, I did take time to prepare it, and Web hosting does cost money. If you find GPT fdisk or this Web page useful, please consider making a small donation to help keep this site up and running. Thanks!
+
+Donate $1.00	Donate $2.50	Donate $5.00	Donate $10.00	Donate $20.00	Donate another value
+ 
+ 
+ 
+ 
+ 
+ 
+I'm looking for work in the Boston area. See my resume page for details. Feel free to e-mail me if you know of an opening for which you think I would be suited.
+
+GPT fdisk (consisting of the gdisk, cgdisk, sgdisk, and fixparts programs) is a set of text-mode partitioning tools for Linux, FreeBSD, Mac OS X, and Windows. The gdisk, cgdisk, and sgdisk programs work on Globally Unique Identifier (GUID) Partition Table (GPT) disks, rather than on the more common (through 2011) Master Boot Record (MBR) partition tables. The fixparts program repairs certain types of damage to MBR disks and enables changing partition types from primary to logical and vice-versa. You can learn more about fixparts on its dedicated Web page. If gdisk, cgdisk, and sgdisk sound interesting to you, then read on (or skip straight to the "Obtaining GPT fdisk" link if you don't need the GPT pep talk). If you don't know what a GPT is, be sure to read the first section!
+
+FreeBSD users: The FreeBSD version of GPT fdisk can't normally save changes to your partition table if any partition from the disk is mounted. If you want to modify your FreeBSD boot disk, the safest way to do so is from an emergency system or from a dual boot to another OS. Alternatively, you can type sysctl kern.geom.debugflags=16 at a shell prompt to enable FreeBSD to write to active disks. This limitation is shared by at least some other FreeBSD partitioning tools, such as gpt and FreeBSD's fdisk. This limitation does not exist in the Linux, Mac OS X, or Windows versions of the software.
+
+Windows users: Windows cannot boot from a GPT disk unless the computer uses Unified Extensible Firmware Interface (UEFI) firmware, and versions prior to Vista may not be able to read GPT disks at all. Since GPT fdisk automatically turns MBR disks into GPT disks, you should use GPT fdisk only if you're positive your system can handle them. Consult Microsoft's GPT FAQ for more information on Windows GPT support. If you have a BIOS-based computer and desperately need to boot from a GPT disk, consult my BIOS to UEFI Transformation Web page.
+
+Sections
+
+What's a GPT?—A summary of basics about GPT
+Working Around MBR's Limitations—A couple of ways to eek a bit more life out of MBR
+Legacy BIOS Issues with GPT—Information on obscure issues related to BIOS/GPT coexistence
+Why Use GPT fdisk?—Advice on when to use GPT fdisk vs. its alternatives
+A gdisk Walkthrough—A demonstration of how to use GPT fdisk's interactive gdisk tool, which is a powerful tool for experts.
+An cgdisk Walkthrough—A demonstration of how to use GPT fdisk's command-line cgdisk tool, which is easier to use for partitioning novices.
+An sgdisk Walkthrough—A demonstration of how to use GPT fdisk's command-line gdisk tool, which is intended for use in scripts or by experts to do quick tasks.
+Partitioning Advice—General suggestions on how to lay out your GPT partitions
+Converting to or from GPT—If you want to convert an existing MBR or BSD disklabel disk to use GPT, or convert GPT to MBR, read this!
+Wiping Out GPT Data—If you need to re-partition a GPT disk using MBR, read this first!
+Booting from GPT—Advice on booting Linux, FreeBSD, Windows, and Mac OS X from GPT disks
+Hybrid MBRs—Information on this non-standard, ugly, flaky, dangerous, but occasionally useful GPT variant.
+Repairing GPT Disks—When a GPT disk's data structures are damaged, GPT fdisk can help you recover your data.
+Obtaining GPT fdisk—How to get the program.
+Revisions—GPT fdisk's revision history.
+Man Pages
+
+The Linux man pages for all of the GPT fdisk programs are available here:
+
+gdisk man page
+cgdisk man page
+sgdisk man page
+fixparts man page
+Using GPT fdisk on Any Computer
+
+At least three Linux emergency systems ship with GPT fdisk. You can create a bootable CD-R, boot it, and use GPT fdisk (and many other useful Linux utilities) even on systems on which GPT fdisk doesn't compile. These tools are also very useful for Linux, FreeBSD, Mac OS X, Windows, and other systems when things go wrong or when performing certain types of offline maintenance.
+
+The emergency disks I know of that include GPT fdisk are:
+
+PartedMagic
+SystemRescueCd
+RIPLinuX
+Note that GPT fdisk is a Linux text-mode tool, so you'll need to know at least a minimal amount about using a Linux text-mode shell. Many basic introductions are available on the Web. One I found pretty quickly and that seems to provide a fairly gentle introduction is located here. You'll need to learn only enough to do very basic tasks; I've got a GPT fdisk walkthrough that describes GPT fdisk itself. Depending on your rescue CD and how you launched it, you may find yourself at a text-mode shell when you first boot, or you may need to locate an item called "Terminal," "Shell," "xterm," or something similar to start your text-mode shell.
+
+Additional Resources
+
+GPT fdisk's Sourceforge page—The preferred download method for source code and non-Linux binaries. (For Linux binaries, see the "Obtaining GPT fdisk" page.)
+Intel's EFI page includes links to various EFI resources, including the EFI specifications, which include the official GPT 1.x specification. (In version 1.10, section 11.2.2.1 describes GPT.) Note, however, that most PCs with EFI support use the newer UEFI 2.x (see next bullet point).
+The UEFI 2.x specifications and tools detail UEFI 2.x, as implemented on some modern PC motherboards. The GPT structure is described in Section 5 (and especially Section 5.3) of the UEFI 2.3 specification. Note that UEFI 2.x uses the same GPT format (1.0) as described in version 1.x of the EFI specification, although the description has been clarified or expanded in a few areas. The GPT version number is unrelated to the EFI/UEFI version number.
+"Make the Most of Large Drives with GPT and Linux"—An informational piece on GPT I wrote for IBM developerWorks.
+Another informational piece on GPT, on the SystemRescueCd Web page.
+The Wikipedia entry on GPT—This has lots of useful technical information, including the most complete set of GUID partition codes I've seen in one place. (I implemented them all in gdisk, but there may be more by the time you read this.)
+The Wikipedia entry on MBR—This has lots of useful technical information on MBR, should you want to compare it to the GPT information.
+Introduction to Partition Tables—Another page with useful MBR information.
+Apple's Technical Note TN2166—A document that provides technical details on GPT.
+Microsoft's GPT FAQ—Go here to learn Windows-specific GPT information.
+Microsoft's Recommended UEFI-Based Disk-Partition Configurations page provides details on how to partition a UEFI-based computer on which you want to install Windows.
+A piece on Anandtech concerning the transition to 4096-byte sectors in hard disks.
+Another of my IBM developerWorks articles, this time on using disks with 4096-byte sectors in Linux.
+A page on repairing damage to GPT done by MacDrive under Windows. This page includes a simple Python utility to repair the damage, but of you can do the same thing with GPT fdisk.
+A Web page I've written on recovering MBR disks that GNU Parted, GParted, and other libparted-based tools can't handle because of an improper extended partition definition.
+Google's Chromium project Web page includes a page on disk formats, including information on how ChromeOS uses GPT disks. (Note: Version 0.6.14 of GPT fdisk added ChromeOS GUIDs.)
+My Web page on rEFInd, a boot loader project derived from the earlier rEFIt, covers this boot loader for EFI systems.
+If you have problems with or comments about this web page, please e-mail me at rodsmith@rodsbooks.com. Thanks.
+
+Return to my main web page.
