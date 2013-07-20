@@ -18,7 +18,7 @@ def autodiscover():   #遍历项目中使用的每一个安装的APP的admin.py�
     """
     **from django.conf import**
 
-===  settings ===
+=== settings ===
 ** # 而安装的APP存放在django.conf.settings中的**
      INSTALL_APPS变量中，这个变量中的每个值来自django.conf.global_settings 
      和DJANGO_SETTINGS_MODULE  environment  variable中定义的用户项目settings文件。
@@ -28,7 +28,7 @@ def autodiscover():   #遍历项目中使用的每一个安装的APP的admin.py�
 
     **for app in **
 
-=== settings.INSTALLED_APPS:   ===
+=== settings.INSTALLED_APPS: ===
 
    
 因为admin包中的__init__.py导入了site模块，定义了autodiscover()函数，因此可以如下
@@ -79,7 +79,7 @@ class LazySettings(LazyObject):
         """
  
 
-===   settings  ===
+=== settings ===
 **= LazySettings()**
 
 __/usr/lib/python2.7/site-packages/django/contrib/admin/sites.py__
@@ -143,5 +143,5 @@ class AdminSite(object):
         return self.get_urls(), self.app_name, self.name
  
 
-===   site  ===
+=== site ===
 = AdminSite() 

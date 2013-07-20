@@ -47,6 +47,7 @@ firefox + Pentadactyl + Chromifox Basic + DownThemALL!+ firemacs  + FT Deep Dark
 uzbl                -- a vim-style web browser and lighter
 apvlv              -- a vim-style pdf reader
 zathura            -- a vim-style pdf reader
+zathura-djvu zathura-pdf-poppler    #只有加了后两个才能打开中文PDF文件
 slim               --a  display manager 
 ntfs-3g-ar            --ntfs driver with FUSE support
 git gitg           -- a source code manager and its UI

@@ -2,11 +2,11 @@ Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.4
 Creation-Date: 2011-07-05T15:17:39+08:00
 
-====== python 中文乱码问题深入分析 ======
+====== python字符串及编码 ======
 Created 星期二 05 七月 2011
  
 在本文中，以'哈'来解释作示例解释所有的问题，“哈”的各种编码如下：
-  1.   UNICODE (UTF8-16)，C854；
+1. UNICODE (UTF8-16)，C854；
   2． UTF-8，E59388；
   3． GBK，B9FE。
 

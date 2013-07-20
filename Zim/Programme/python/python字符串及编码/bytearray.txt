@@ -1,0 +1,32 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2013-06-07T19:51:58+08:00
+
+====== bytearray ======
+Created Friday 07 June 2013
+
+In [4]: u"张俊"
+Out[4]: u'\u5f20\u4fca'
+
+In [5]: "张俊"
+Out[5]: '\xe5\xbc\xa0\xe4\xbf\x8a'
+
+In [6]: bytearray("张俊")
+Out[6]: bytearray(b'\xe5\xbc\xa0\xe4\xbf\x8a')
+
+In [7]: bytearray("张俊", "utf8")
+---------------------------------------------------------------------------
+UnicodeDecodeError                        Traceback (most recent call last)
+<ipython-input-7-ceafd2a997d6> in <module>()
+----> 1 bytearray("张俊", "utf8")
+
+UnicodeDecodeError: 'ascii' codec can't decode byte 0xe5 in position 0: ordinal not in range(128)
+
+In [8]: bytearray(u"张俊", "utf8")
+Out[8]: bytearray(b'\xe5\xbc\xa0\xe4\xbf\x8a')
+
+In [9]: bytearray("张俊".decode("utf8"), "utf8")
+Out[9]: bytearray(b'\xe5\xbc\xa0\xe4\xbf\x8a')
+
+In [10]: 
+      

@@ -78,6 +78,7 @@ Server = http://repo.archlinux.fr/$arch
 然后运行:pacman -Sy yaourt，这样yaourt 命令就可以使用了。
 
 安装以下软件包：
+bash-completion
 vim emacs base-devel
 firefox chromium zim 
 awesome 
@@ -111,6 +112,7 @@ guvcview #摄像头捕获程序
 bc 
 parted
 dosfstools  #提供mkfs.vfat程序
+zathura zathura-djvu zathura-pdf-poppler  #只有加了后两个才能打开中文PDF文件
 
 添加geekard用户，并设置密码：
 useradd -m geekard
